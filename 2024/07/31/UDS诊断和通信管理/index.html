@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Hexo Theme Redefine">
+    
+    <meta name="author" content="Chiu">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set data attribute for CSS variables
+                root.setAttribute("data-theme", theme);
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes once DOM is ready
+            if (document.readyState !== "loading") {
+                document.body.classList.add(theme + "-mode");
+            } else {
+                document.addEventListener("DOMContentLoaded", () => {
+                    document.body.classList.add(theme + "-mode");
+                    document.body.classList.remove((theme === DARK ? LIGHT : DARK) + "-mode");
+                });
+            }
+        })();
+    </script>
+    
+    <!-- Critical CSS to prevent flash -->
+    <style>
+        :root[data-theme="dark"] {
+            --background-color: #202124;
+            --background-color-transparent: rgba(32, 33, 36, 0.6);
+            --second-background-color: #2d2e32;
+            --third-background-color: #34353a;
+            --third-background-color-transparent: rgba(32, 33, 36, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #ffffff;
+            --second-text-color: #eeeeee;
+            --third-text-color: #bebec6;
+            --fourth-text-color: #999999;
+            --default-text-color: #bebec6;
+            --invert-text-color: #373D3F;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(255, 255, 255, 0.08);
+            --shadow-color-2: rgba(255, 255, 255, 0.05);
+        }
+        
+        :root[data-theme="light"] {
+            --background-color: #fff;
+            --background-color-transparent: rgba(255, 255, 255, 0.6);
+            --second-background-color: #f8f8f8;
+            --third-background-color: #f2f2f2;
+            --third-background-color-transparent: rgba(241, 241, 241, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #16171a;
+            --second-text-color: #2f3037;
+            --third-text-color: #5e5e5e;
+            --fourth-text-color: #eeeeee;
+            --default-text-color: #373D3F;
+            --invert-text-color: #bebec6;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(0, 0, 0, 0.08);
+            --shadow-color-2: rgba(0, 0, 0, 0.05);
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+        
+        /* Apply body classes as soon as DOM is ready */
+        :root[data-theme="dark"] body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+    </style>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="http://example.com/2024/07/31/uds诊断和通信管理/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+    
+        
+        <meta name="description" content="UDS 功能单元诊断服务标识符分为以下功能单元：  诊断和通信管理 数据传输 存储数据传输 输入输出控制 远程激活常规控制 上传&#x2F;下载  在本章中，我们将重点介绍诊断和通信管理。  诊断和通信管理该诊断和通信管理功能单元用于控制ECU中的诊断和通信相关操作。它提供以下服务。  诊断会话控制  -  (0x10) ECU复位  –  (0x11) 安全访问  –  (0x27) 通信控制">
+<meta property="og:type" content="article">
+<meta property="og:title" content="UDS诊断和通信管理">
+<meta property="og:url" content="http://example.com/2024/07/31/UDS%E8%AF%8A%E6%96%AD%E5%92%8C%E9%80%9A%E4%BF%A1%E7%AE%A1%E7%90%86/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="UDS 功能单元诊断服务标识符分为以下功能单元：  诊断和通信管理 数据传输 存储数据传输 输入输出控制 远程激活常规控制 上传&#x2F;下载  在本章中，我们将重点介绍诊断和通信管理。  诊断和通信管理该诊断和通信管理功能单元用于控制ECU中的诊断和通信相关操作。它提供以下服务。  诊断会话控制  -  (0x10) ECU复位  –  (0x11) 安全访问  –  (0x27) 通信控制">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706184957.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185026.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185045.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185104.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185403.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185958.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706195050.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706200711.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706220943.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706223717.png">
+<meta property="article:published_time" content="2024-07-31T06:34:49.000Z">
+<meta property="article:modified_time" content="2024-07-31T06:35:43.172Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="车联网">
+<meta property="article:tag" content="UDS诊断协议">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706184957.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            UDS诊断和通信管理 | Chiu&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+        
+<script src="/js/build/libs/anime.min.js"></script>
+
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"example.com","root":"/","language":"en"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":null,"default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":true,"site_pv":true,"site_uv":true,"post_pv":true},"single_page":true,"preloader":true,"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":true,"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Input | Think | Output","subtitle":{"text":["How you spend every day is how you spend your life"],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"default","links":{"github":"https://github.com/Idealist17","instagram":null,"zhihu":null,"twitter":null,"email":"ChiuFangxi@gmail.com"},"qrs":{"weixin":null}}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"9.3.0"}},"version":"2.8.4","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Gallery":{"icon":"fa-solid fa-image","path":"/masonry/"},"About":{"icon":"fa-regular fa-user","submenus":{"Me":"/about","Friends":"/friends"}}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur"},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":"Input | Think | Output","show_on_mobile":true,"links":{"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footerStart":"2024/7/30 14:00:00"};
+    window.lang_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+    window.data = {"masonry":true};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<style>
+    :root {
+        --preloader-background-color: #fff;
+        --preloader-text-color: #000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --preloader-background-color: #202124;
+            --preloader-text-color: #fff;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --preloader-background-color: #fff;
+            --preloader-text-color: #000;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .ml13 {
+            font-size: 2.6rem !important; /* Adjust this value as needed */
+        }
+    }
+
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem; /* Tailwind 'gap-4' is 1rem */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        padding: 12px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh; /* 'h-screen' is 100% of the viewport height */
+        background-color: var(--preloader-background-color);
+        z-index: 1100; /* 'z-[1100]' sets the z-index */
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .ml13 {
+        font-size: 3.2rem;
+        /* text-transform: uppercase; */
+        color: var(--preloader-text-color);
+        letter-spacing: -1px;
+        font-weight: 500;
+        font-family: 'Chillax-Variable', sans-serif;
+        text-align: center;
+    }
+
+    .ml13 .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .ml13 .letter {
+        display: inline-block;
+        line-height: 1em;
+    }
+</style>
+
+<div class="preloader">
+    <h2 class="ml13">
+        Chiu&#39;s Blog
+    </h2>
+    <script>
+        var textWrapper = document.querySelector('.ml13');
+        // Split text into words
+        var words = textWrapper.textContent.trim().split(' ');
+
+        // Clear the existing content
+        textWrapper.innerHTML = '';
+
+        // Wrap each word and its letters in spans
+        words.forEach(function(word) {
+            var wordSpan = document.createElement('span');
+            wordSpan.classList.add('word');
+            wordSpan.innerHTML = word.replace(/\S/g, "<span class='letter'>$&</span>");
+            textWrapper.appendChild(wordSpan);
+            textWrapper.appendChild(document.createTextNode(' ')); // Add space between words
+        });
+
+        var animation = anime.timeline({ loop: true })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [20, 0],
+                translateZ: 0,
+                opacity: [0, 1],
+                filter: ['blur(5px)', 'blur(0px)'],
+                easing: "easeOutExpo",
+                duration: 1200,
+                delay: (el, i) => 300 + 20 * i,
+            })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [0, -20],
+                opacity: [1, 0],
+                filter: ['blur(0px)', 'blur(5px)'],
+                easing: "easeInExpo",
+                duration: 1000,
+                delay: (el, i) => 15 * i,
+                complete: function() {
+                    hidePreloader();
+                }
+            }, '-=700');
+
+
+        let themeStatus = JSON.parse(localStorage.getItem('REDEFINE-THEME-STATUS'))?.isDark;
+
+        // If the theme status is not found in local storage, check the preferred color scheme
+        if (themeStatus === undefined || themeStatus === null) {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                themeStatus = 'dark';
+            } else {
+                themeStatus = 'light';
+            }
+        }
+
+        // Now you can use the themeStatus variable in your code
+        if (themeStatus) {
+            document.documentElement.style.setProperty('--preloader-background-color', '#202124');
+            document.documentElement.style.setProperty('--preloader-text-color', '#fff');
+        } else {
+            document.documentElement.style.setProperty('--preloader-background-color', '#fff');
+            document.documentElement.style.setProperty('--preloader-text-color', '#000');
+        }
+
+        window.addEventListener('load', function () {
+            setTimeout(hidePreloader, 5000); // Call hidePreloader after 5000 milliseconds if not already called by animation
+        });
+
+        function hidePreloader() {
+            var preloader = document.querySelector('.preloader');
+            preloader.style.opacity = '0';
+            setTimeout(function () {
+                preloader.style.display = 'none';
+            }, 200);
+        }
+    </script>
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Chiu&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    HOME
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    ARCHIVES
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/masonry/"
+                                        >
+                                    <i class="fa-solid fa-image fa-fw"></i>
+                                    GALLERY
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="has-dropdown"
+                                   href="#"
+                                        onClick=&#34;return false;&#34;>
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    ABOUT
+                                    <i class="fa-solid fa-chevron-down fa-fw"></i>
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                                    <ul class="sub-menu">
+                                        
+                                            <li>
+                                                <a href="/about">
+                                                    ME
+                                                </a>
+                                            </li>
+                                        
+                                            <li>
+                                                <a href="/friends">
+                                                    FRIENDS
+                                                </a>
+                                            </li>
+                                        
+                                    </ul>
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                HOME
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                ARCHIVES
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/masonry/"
+                        >
+                            <span>
+                                GALLERY
+                            </span>
+                            
+                                <i class="fa-solid fa-image fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item-sub text-base my-1.5 flex flex-col w-full">
+                        
+                        <div class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary cursor-pointer text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                             navbar-data-toggle="submenu-About"
+                        >
+                            <span>
+                                ABOUT
+                            </span>
+                            
+                                <i class="fa-solid fa-chevron-right fa-sm fa-fw transition-all"></i>
+                            
+                        </div>
+                        
+
+                        
+                            <div class="flex-col items-start px-2 py-2 hidden" data-target="submenu-About">
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/about">ME</a>
+                                    </div>
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/friends">FRIENDS</a>
+                                    </div>
+                                
+                            </div>
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>Tags</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">22</div>
+        <div class="label text-third-text-color text-sm">Tags</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Categories</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">35</div>
+        <div class="label text-third-text-color text-sm">Posts</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">UDS诊断和通信管理</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] flex-shrink-0 rounded-medium border border-border-color p-[1px]">
+				<img src="/images/redefine-avatar.svg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Chiu</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2024-07-31 14:34:49</span>
+        <span class="mobile">2024-07-31 14:34:49</span>
+        <span class="hover-info">Created</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2024-07-31 14:35:43</span>
+            <span class="mobile">2024-07-31 14:35:43</span>
+            <span class="hover-info">Updated</span>
+        </span>
+    
+
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E8%BD%A6%E8%81%94%E7%BD%91/">车联网</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/UDS%E8%AF%8A%E6%96%AD%E5%8D%8F%E8%AE%AE/">UDS诊断协议</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fa-regular fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h2 id="UDS-功能单元"><a href="#UDS-功能单元" class="headerlink" title="UDS 功能单元"></a><strong>UDS 功能单元</strong></h2><p>诊断服务标识符分为以下功能单元：</p>
+<ul>
+<li>诊断和通信管理</li>
+<li>数据传输</li>
+<li>存储数据传输</li>
+<li>输入输出控制</li>
+<li>远程激活常规控制</li>
+<li>上传&#x2F;下载</li>
+</ul>
+<p>在本章中，我们将重点介绍诊断和通信管理。</p>
+<hr>
+<h2 id="诊断和通信管理"><a href="#诊断和通信管理" class="headerlink" title="诊断和通信管理"></a><strong>诊断和通信管理</strong></h2><p>该诊断和通信管理功能单元用于控制ECU中的诊断和通信相关操作。<br>它提供以下服务。</p>
+<ol>
+<li>诊断会话控制  -  (0x10)</li>
+<li>ECU复位  –  (0x11)</li>
+<li>安全访问  –  (0x27)</li>
+<li>通信控制  –  (0x28)</li>
+<li>身份验证  –  (0x29)</li>
+<li>测试设备在线  –  (0x3E)</li>
+<li>访问时序参数  –  (0x83)</li>
+<li>安全的数据传输  –  (0x84)</li>
+<li>控制 DTC 设置 –  (0x85)</li>
+<li>事件响应  –  (0x86)</li>
+<li>链路控制  –  (0x87)</li>
+</ol>
+<h3 id="0x10-诊断会话控制"><a href="#0x10-诊断会话控制" class="headerlink" title="0x10 诊断会话控制"></a><strong>0x10 诊断会话控制</strong></h3><p>诊断会话的服务 ID 为 <strong>0x10</strong>，响应 SID 为 <strong>0x50</strong>。<br>诊断会话控制是 UDS 使用的最重要的服务之一。诊断会话控制用于控制ECU的诊断会话。此服务用于将当前诊断会话更改为其他会话。<br>这些会话用于启用或禁用ECU中的一组特定诊断功能和特性。<br>UDS 中有许多可用服务，某些服务只有在 ECU 处于默认会话中时才能访问，而其他一些服务可以在其他会话中访问 ECU。<br>我们可以说这个诊断会话控制是访问ECU的网关。在执行任何诊断操作之前，此诊断服务应授予运行相应服务的访问权限。这是由汽车制造商决定的。<br>例如，假设在默认会话中，我们无法升级 ECU 的软件，因为默认会话无权对 ECU 进行重新编程。只有在编程会话中，我们才能由授权的线路工程师对ECU进行重新编程。<br>此诊断会话的主要目的是为 ECU 提供安全性。它将防止 ECU 进行不必要的访问。只有授权人员才能访问它。如果每个诊断服务都可以访问ECU，则它可能会因软件的错误闪烁而损坏。<br>因此，在发出任何诊断请求之前，客户端必须确保此服务在ECU当前会话中是可访问的或不可访问的。如果没有，则在执行所需的请求后首先发送会话更改请求。</p>
+<p>如果服务器 (ECU) 处于非默认会话中，或者诊断处于非活动状态5秒钟，则ECU将进入默认会话。</p>
+<p>这有许多子功能，下表中对此进行了解释。</p>
+<table>
+<thead>
+<tr>
+<th><strong>子功能</strong></th>
+<th><strong>描述</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>默认会话 (0x01)</td>
+<td>此会话处于空闲状态。每当 ECU 通电时，它只会处于此默认会话中。ECU 将保持默认会话状态，直到从客户端请求另一个诊断会话。<br><br>此会话中提供了写入数据字节标识符  (0x2E) 、读取数据字节标识符  (0x22) 、ECU 复位  (0x11) 、测试人员存在  (0x3E)  和读取 DTC  (0x19)   等服务。<br><br>安全访问  (0x27)  不可用。与所有其他诊断会话控制子功能相比，此服务的安全性较低。<br><br>示例：在车库中，有人正在尝试读取诊断故障代码  (DTC) 。</td>
+</tr>
+<tr>
+<td>编程环节 (0x02)</td>
+<td>此会话用于对ECU进行编程或将数据从客户端传输到服务器。<br><br>默认会话中允许的所有服务都允许在此会话中使用。<br><br>如果此会话结束或过期，ECU 将进入默认会话。<br><br>示例：编程会话时终端线工程师刷新校准软件。</td>
+</tr>
+<tr>
+<td>扩展会话 (0x03)</td>
+<td>默认会话中允许的所有服务都允许在此会话中<br><br>此会话还用于解锁其他诊断功能<br><br>此会话中允许安全访问  (0x27) ，这意味着在此会话中已解锁安全级别<br><br>如果此会话结束或过期，则 ECU 进入默认会话<br><br>示例：此会话是下线工程师进行动态车辆测试以检查安全级别</td>
+</tr>
+<tr>
+<td>安全系统 诊断系统 (0x04)</td>
+<td>用于测试所有安全关键型诊断功能。<br><br>此诊断会话控制子功能具有很高的安全性。<br><br>示例：此会话正在检查安全气囊和胎压监测器的安全性。</td>
+</tr>
+<tr>
+<td>0x05 0x3F</td>
+<td>保留</td>
+</tr>
+<tr>
+<td>特定车辆制造 (0x40 至 0x5F)</td>
+<td>此会话取决于每个 OEM，如果他们想根据自己的要求实现任何会话，他们可以使用它。</td>
+</tr>
+<tr>
+<td>系统供应商特定 (0x60 0X7E)</td>
+<td>此会话也类似于车辆制造特定，但而不是车辆制造商，如果系统供应商想要根据其特定要求实施任何会话，则可以使用它。</td>
+</tr>
+<tr>
+<td>0x7F</td>
+<td>保留</td>
+</tr>
+</tbody></table>
+<p><strong>请求帧格式：</strong></p>
+<p>请求帧格式如下所示。<br><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706184957.png"
+                      alt="image.png"
+                ></p>
+<p><strong>响应帧格式：</strong></p>
+<p>有两种类型的响应帧。这是一个积极的回应和一个消极的回应。</p>
+<p><strong>积极回应：</strong><br><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185026.png"
+                      alt="image.png"
+                ></p>
+<p><strong>否定回应：</strong><br><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185045.png"
+                      alt="image.png"
+                ></p>
+<p>请查看以下示例，了解诊断会话转换<br><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185104.png"
+                      alt="image.png"
+                ><br>如果我们想从一个非默认会话切换到另一个非默认会话，首先我们需要切换到默认会话，然后我们可以切换到另一个非默认会话。</p>
+<h3 id="0x11-ECU-复位"><a href="#0x11-ECU-复位" class="headerlink" title="0x11 ECU 复位"></a><strong>0x11 ECU 复位</strong></h3><p>ECU 重置的服务 ID 为 <strong>0x11</strong>，响应 SID 为 <strong>0x51</strong>。</p>
+<p>ECU复位服务用于重新启动车辆中的特定ECU或所有ECU。这项服务的动机是将ECU从故障或挂起状态或非工作状态中恢复。</p>
+<p>在ECU复位期间，它不会接受来自客户端的任何请求，也不会向客户端发送任何响应。此服务在扩展会话中受支持。</p>
+<p>复位成功后，ECU将返回默认会话。</p>
+<p>这有许多子功能，下表中对此进行了解释。</p>
+<table>
+<thead>
+<tr>
+<th>子功能</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>硬复位  (0x01)</td>
+<td>硬复位意味着从ECU中取出电池 (电源) ，然后将ECU与电池重新连接。<br><br>在这种类型的复位中，ECU会重新初始化系统的核心硬件组件，并且还会重新初始化非易失性和易失性存储器。<br><br>此重置可能会丢失一些数据，因为在ECU运行期间电池突然被取出</td>
+</tr>
+<tr>
+<td>重置时键关闭  (0x02)</td>
+<td>钥匙关开复位只是车辆的点火关断过程。这是微控制器的正常睡眠-唤醒模式。<br><br>当我们进行 Key Off  On 复位 ECU 时，不会立即断电。它将进入启动模式，然后将所有数据存储在非易失性存储器中，并在不丢失任何数据的情况下取消初始化硬件变量。<br><br>在这种重置方法中，没有丢失数据的机会。这是重置的正确方法，大多数 OEM 都在使用这种类型的 ECU 重置。</td>
+</tr>
+<tr>
+<td>软复位  (0x03)</td>
+<td>软重置只不过是重新启动应用程序的主要软件。当我们进行这种类型的重置时，微控制器的堆栈指针指向 main ()   函数的地址。然后它将首先开始执行。<br><br>例如，将进行看门狗重置。每当挂起或发生任何故障时，该看门狗定时器将重置微控制器，并从 main ()   函数启动</td>
+</tr>
+<tr>
+<td>启用快速电源关断  (0x04)</td>
+<td>在这种类型的复位中，不会发生点火关闭。ECU将进入睡眠模式，ECU随时准备唤醒</td>
+</tr>
+<tr>
+<td>禁用快速电源关机  (0x05)</td>
+<td>此服务用于禁用以前启用的快速电源关机</td>
+</tr>
+</tbody></table>
+<p>以下示例说明了ECU复位过程</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185403.png"
+                      alt="image.png"
+                ></p>
+<h3 id="0x27-安全访问"><a href="#0x27-安全访问" class="headerlink" title="0x27 安全访问"></a><strong>0x27 安全访问</strong></h3><p>安全访问的服务 ID 为 <strong>0x27</strong>，响应 SID 为 <strong>0x67</strong>。</p>
+<p>此安全访问诊断服务用于提供对 UDS 协议服务的安全访问，以避免安全漏洞。出于安全考虑，某些诊断数据和服务可能会受到限制。</p>
+<p>此服务将授予对特定服务的读取和写入访问权限。在处理任何服务 ID  (SID)  操作之前，必须检查安全访问，以了解客户端是否有权对此 SID 进行读取或写入。</p>
+<p><strong>例如</strong>，要上传和下载软件，无法由所有人访问常规控制和<strong>VIN</strong> (车辆识别号) DID，一些授权测试人员只能访问这些SID。</p>
+<p>安全访问权限基于这两个授予，</p>
+<ol>
+<li><strong>1.Seed  (0x01)</strong></li>
+<li><strong>2.key  (0x02)</strong></li>
+</ol>
+<ul>
+<li>测试人员使用 SID 0x27和子功能 ID 0x01发送解锁 ECU 的请求。0x01意味着请求种子。</li>
+<li>UDS 服务器接收请求，假设条件正确，并根据加密算法生成随机种子和密钥，服务器将种子发送到客户端并得到肯定的响应。</li>
+<li>使用接收到的种子，测试工具生成密钥并将此密钥发送到服务器，以使用 SID 0x27和子功能 ID 0x02解锁 ECU。0x02 表示关键。</li>
+<li>如果测试工具 (客户端) 发送的解锁密钥与服务器期望密钥匹配，则发送肯定响应并解锁ECU，否则将发送带有特定否定响应代码的否定响应。</li>
+</ul>
+<p>以下示例说明了整个过程。<br><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706185958.png"
+                      alt="image.png"
+                ><br>示例：</p>
+<ol>
+<li><p>client requests the “Seed”, <code>27 SF</code>，sf为奇数（odd） &#x3D;&#x3D;2n-1&#x3D;&#x3D;，代表安全等级；</p>
+</li>
+<li><p>server sends the “Seed”, <code>67 SF Seed</code>, SF与请求中的值相等；如果服务端处于unlocked状态，则Seed为0;</p>
+</li>
+<li><p>client sends the “Key” (appropriate for the Seed received), <code>27 SF Key</code>，SF值为&#x3D;&#x3D;2n&#x3D;&#x3D;，即上一请求中的等级+1；</p>
+</li>
+<li><p>server responds that the “Key” was valid and that it will unlock itself. 肯定响应<code>67 SF</code>，SF 为 &#x3D;&#x3D;2n&#x3D;&#x3D;</p>
+</li>
+</ol>
+<h3 id="0x28-通信控制"><a href="#0x28-通信控制" class="headerlink" title="0x28 通信控制"></a><strong>0x28 通信控制</strong></h3><p>通信控件的服务 ID 为 <strong>0x28</strong>，响应 SID 为 <strong>0x68</strong>。</p>
+<p>此通信控制服务用于控制ECU服务器的通信。这意味着此服务通过诊断线启用或禁用来自服务器  (ECU)  的消息的传输或接收。</p>
+<p>此服务用于控制ECU的发射器和接收器。测试人员可以同时使用多种类型的通信。</p>
+<p>在希望为所有或一组ECU停止通信的上下文中，此服务非常有用。例如，可以在软件下载期间使用它，以最大限度地提高可用带宽。</p>
+<p>有 3 种类型的通信类型可用，它们是：</p>
+<ol>
+<li>正常通信消息  (<strong>0x01</strong>)</li>
+<li>网络管理通信消息  (<strong>0x02</strong>)</li>
+<li>正常通信消息和网络管理通信消息  (<strong>0x03</strong>)</li>
+</ol>
+<p>下表解释了子功能。</p>
+<table>
+<thead>
+<tr>
+<th>子功能</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>启用 Tx 和启用 Rx  (0x00)</td>
+<td>在此类型中启用消息的传输和接收。</td>
+</tr>
+<tr>
+<td>启用 Rx 并禁用 Tx  (0x01)</td>
+<td>在此类型中，消息的传输被禁用，消息的接收被启用。</td>
+</tr>
+<tr>
+<td>禁用 Rx 并启用 Tx  (0x02)</td>
+<td>在此类型中，消息的传输处于启用状态，消息的接收处于禁用状态。</td>
+</tr>
+<tr>
+<td>禁用 Tx 和 Rx  (0x03)</td>
+<td>在这种类型的通信中，消息的传输和接收都被禁用。</td>
+</tr>
+</tbody></table>
+<p>以下示例说明了整个过程。<br><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706195050.png"
+                      alt="image.png"
+                ></p>
+<h2 id="0x29-认证"><a href="#0x29-认证" class="headerlink" title="0x29 认证"></a><strong>0x29 认证</strong></h2><p>此身份验证服务是在 ye 之后添加的ar 2020，这用于为比安全会计允许的更现代的身份验证方法提供标准化方法ess  (<strong>0x27</strong>) 服务，包括使用基于 PKI 的证书交换进行双向身份验证。</p>
+<p>身份验证的服务 ID 为 <strong>0x29</strong>，响应 SID 为 <strong>0x69</strong>。</p>
+<h2 id="0x3E-测试设备在线"><a href="#0x3E-测试设备在线" class="headerlink" title="0x3E  测试设备在线"></a><strong>0x3E  测试设备在线</strong></h2><p>测试设备的服务 ID 为 <strong>0x3E</strong>，响应 SID 为 <strong>0x7E</strong>。</p>
+<p>它是UDS协议中的重要服务之一，我们将看到这个服务ID的用途。</p>
+<p>此服务用于向服务器指示客户端仍连接到服务器。此服务用于使服务器在当前会话中保持活动状态，默认会话除外。</p>
+<p>为了使客户端保持在当前会话 (非默认会话) 中，使用测试器在场  (<strong>0x3E</strong>) ，客户端将定期发送此服务  (<strong>0x3E</strong>) 。</p>
+<p>如果客户端与服务器交换任何数据的时间不超过大约 5 秒的 S3 计时器值 (此计时值在下面的 S3 计时器中进行了说明) ，则出于安全考虑，服务器  (ECU)  将断开连接并自动回退到默认会话。</p>
+<p>下表解释了子功能。</p>
+<table>
+<thead>
+<tr>
+<th>子功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0x00 – 不支持 SuppressPosResMsgIndication  (SPRMI)</td>
+</tr>
+<tr>
+<td>0x80 – SuppressPosResMsgIndication  (SPRMI)   支持 (第 7 位已设置 –  (SPRMIB) )</td>
+</tr>
+</tbody></table>
+<p><strong>什么是 S3 计时器？</strong><br>S3 服务器参数是在每个 ECU 中实现的服务器  (ECU)  端时序参数。S3 服务器参数的主要功能是在超时后从非默认会话 (编程、扩展、安全系统会话) 自动返回到默认会话。超时值仅基于 S3 参数。</p>
+<p>当测试人员请求更改为非默认会话时，S3 计时器将启动，并且 S3 计时器值可能因 OEM 而异，但大多数 OEM 将 S3 值保留为 5 秒。</p>
+<p><strong>为什么我们需要 S3 计时器？</strong><br>如果客户端在该期间的非默认会话中没有执行任何操作，则为了安全起见，ECU将自动进入默认会话。</p>
+<p>假设服务器在超时后不进入默认会话并保持在相同的非默认会话中。如果我们启动车辆，ECU将无法工作。因此，可能会发生事故或其他故障。</p>
+<p><strong>SPRMIB：</strong><br>抑制正响应消息指示位  (SPRMIB) 仅在具有子功能字节的子功能服务中受支持。该位用于定义 ECU 的正响应是否要向客户端公开</p>
+<p>suppressPosResMsgIndicationBit仅通过 CAN 接口受支持，而 K 线和 ITS 接口不受支持。</p>
+<p>如果服务支持 suppressPosResMsgIndicationBit，则位 7 将解释为suppressPosResMsgIndicationBit</p>
+<ul>
+<li>当位 7 为“1” (SPRMIB&#x3D;1)  时，ECU 不会向客户端发送正响应，这意味着它将抑制正响应。</li>
+<li>当位 7 为“0” (SPRMIB&#x3D;0) 时，ECU 将向客户端发送正响应，这意味着不抑制正响应。</li>
+<li>如果服务不支持 SPRMIB，则它将发送否定响应 (不支持子函数) ，并显示 suppressPosResMsgIndicationBit (SPRMIB) &#x3D;1<br>注意：使用 SPRMIB 我们只能抑制积极的反应。否定反应不能被抑制</li>
+</ul>
+<p>以下是一些具有支持 SPRMIB 的子功能的服务。</p>
+<table>
+<thead>
+<tr>
+<th>SID</th>
+<th>服务</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0x10</td>
+<td>诊断会话控制</td>
+</tr>
+<tr>
+<td>0x11</td>
+<td>ECU复位</td>
+</tr>
+<tr>
+<td>0x19</td>
+<td>阅读DTC(故障诊断代码)信息</td>
+</tr>
+<tr>
+<td>0x27</td>
+<td>安全访问</td>
+</tr>
+<tr>
+<td>0x28</td>
+<td>通信控制</td>
+</tr>
+<tr>
+<td>0x31</td>
+<td>日常控制</td>
+</tr>
+<tr>
+<td>0x3E</td>
+<td>测试人员在场</td>
+</tr>
+<tr>
+<td>0x83</td>
+<td>访问时序参数</td>
+</tr>
+<tr>
+<td>0x85</td>
+<td>控制DTC设置</td>
+</tr>
+<tr>
+<td>0x97</td>
+<td>链路控制</td>
+</tr>
+</tbody></table>
+<p>下面的例子解释了积极响应的完整过程  </p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706200711.png"
+                     
+                >  </p>
+<p>如果服务不支持 SPRMIB，则它将发送否定响应  (不支持子函数)  suppressPosResMsgIndicationBit  (SPRMIB) &#x3D; 1。  </p>
+<p>我们知道现在的测试器只有两个子功能，即0x00和0x80。因此，不支持0x01 0x7F。如果发送不支持的子函数，则它将发送否定响应。</p>
+<p>下面的示例解释了否定响应的完整过程。<br><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706220943.png"
+                      alt="image.png"
+                ></p>
+<h2 id="0x83-访问时序参数"><a href="#0x83-访问时序参数" class="headerlink" title="0x83 访问时序参数"></a><strong>0x83 访问时序参数</strong></h2><p>访问计时参数的服务 ID 为 <strong>0x83</strong>，响应 SID 为 <strong>0xC3</strong>。</p>
+<p>此访问计时参数服务用于在此通信期间读取和写入通信链路的默认计时参数。在控制器和客户端之间的通信中，必须遵守某些时间。</p>
+<p>如果在未发送任何消息的情况下超过这些值，则必须假定连接已中断。通过使用此服务，可以读取&#x2F;写入超时值和消息间隔时间。</p>
+<p>下表解释了子功能</p>
+<table>
+<thead>
+<tr>
+<th>子功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0x01 – 读取扩展时序参数集</td>
+</tr>
+<tr>
+<td>0x02 – 将时序参数设置为默认值</td>
+</tr>
+<tr>
+<td>0x03- 读取当前活动的时序参数</td>
+</tr>
+<tr>
+<td>0x04- 将时序参数设置为给定值</td>
+</tr>
+<tr>
+<td>建议在物理寻址方法中使用此服务  (0x83) ，因为服务器支持一组不同的扩展时序参数。</td>
+</tr>
+</tbody></table>
+<h2 id="0x85-控制-DTC-设置"><a href="#0x85-控制-DTC-设置" class="headerlink" title="0x85 控制 DTC 设置"></a><strong>0x85 控制 DTC 设置</strong></h2><p>控件 DTC 设置的服务 ID 为 <strong>0x85</strong>，响应 SID 为 <strong>0xC5</strong>。</p>
+<p>通常，诊断故障代码 (DTC) 用于指示由ECU引起的故障。在某些情况下，测试人员可能会认为不检测ECU中发生的某些错误。</p>
+<p>届时，我们可以使用这项服务。当客户端&#x2F;测试人员在发生故障时需要停止或恢复服务器&#x2F;ECU更新DTC时，使用控制DTC设置服务。</p>
+<p>当客户知道车辆中的问题但试图通过做一些额外的实验来找到根本原因时，这将非常有帮助。</p>
+<p>控制DTC设置服务用于打开或关闭故障错误代码的检测。</p>
+<p>当客户端请求服务器关闭时，服务器会收到请求并暂时关闭此功能，并且服务器将保留当前值并挂起新值。</p>
+<p>稍后，当客户端请求服务器打开时，服务器将使用新值进行更新</p>
+<p>如果在控制 DTC 设置处于 OFF 状态时，用户请求清除诊断信息服务  (0x14) ，则服务器仍可能清除 DTC 信息。</p>
+<p>如果客户端在服务器的 DTC 设置已处于 OFF 模式时请求关闭服务，则服务器将以肯定响应进行响应，并将忽略该请求。</p>
+<p>下表解释了子功能。</p>
+<table>
+<thead>
+<tr>
+<th>子功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>打开 – 0x01</td>
+</tr>
+<tr>
+<td>关闭 - 0x02</td>
+</tr>
+</tbody></table>
+<p> 以下示例说明了整个过程。<br><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/20240706223717.png"
+                      alt="image.png"
+                ></p>
+<h2 id="0x86-事件响应"><a href="#0x86-事件响应" class="headerlink" title="0x86 事件响应"></a><strong>0x86 事件响应</strong></h2><p>“事件响应”的服务 ID 为<strong>0x86</strong>，“响应 SID”为<strong>0xC6</strong>。</p>
+<p>此事件响应服务请求服务器启动或停止对特定事件的响应传输。当发生特定事件时，此服务会自动执行诊断服务，而无需从客户端获取请求。</p>
+<p>客户端使用可选事件参数指定事件，并使用在事件发生时要执行的服务参数指定服务。使用此服务测试仪可以将ECU配置为在发生任何定义的事件时向测试仪发送响应，而无需请求。</p>
+<p>例如，假设电源中断是车辆中的事件。如果在驱动ECU时发生电源中断，它将不会等待测试人员的请求。ECU会将响应发送给测试仪&#x2F;客户端。在这种情况下，测试人员将收到否定的响应。</p>
+<p>下表解释了子功能。</p>
+<table>
+<thead>
+<tr>
+<th>子功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0x00 – 停止事件响应</td>
+</tr>
+<tr>
+<td>0x01- 关于 DTC 状态更改</td>
+</tr>
+<tr>
+<td>0x02 – 定时器中断</td>
+</tr>
+<tr>
+<td>0x03 – 关于更改数据标识符</td>
+</tr>
+<tr>
+<td>0x04 – 报告激活的事件</td>
+</tr>
+<tr>
+<td>0x05 – 在事件时开始响应</td>
+</tr>
+<tr>
+<td>0x06 – 对事件的明确响应</td>
+</tr>
+<tr>
+<td>0x07-关于价值的比较</td>
+</tr>
+</tbody></table>
+<h2 id="0x87-链路控制"><a href="#0x87-链路控制" class="headerlink" title="0x87 链路控制"></a><strong>0x87 链路控制</strong></h2><p>链接控件的服务 ID 为 <strong>0x87</strong>，响应 SID 为 <strong>0xC7</strong>。</p>
+<p>链路控制可用于更改客户端和服务器之间的通信参数，以提高波特率。因此，测试人员可以非常快速地在测试人员和服务器之间交换数据。</p>
+<p>下表解释了子功能。</p>
+<table>
+<thead>
+<tr>
+<th>子功能</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0x01 – 使用固定波特率验证波特率转换</td>
+</tr>
+<tr>
+<td>0x02 – 使用特定波特率验证波特率转换</td>
+</tr>
+<tr>
+<td>0x03 – 转换波特率</td>
+</tr>
+</tbody></table>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>Title:</strong> UDS诊断和通信管理</li>
+        <li><strong>Author:</strong> Chiu</li>
+        <li><strong>Created at
+                :</strong> 2024-07-31 14:34:49</li>
+        
+            <li>
+                <strong>Updated at
+                    :</strong> 2024-07-31 14:35:43
+            </li>
+        
+        <li>
+            <strong>Link:</strong> https://github.com/Idealist17/github.io/2024/07/31/UDS诊断和通信管理/
+        </li>
+        <li>
+            <strong>
+                License:
+            </strong>
+            
+
+            
+                This work is licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a>.
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%BD%A6%E8%81%94%E7%BD%91/">#车联网</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/UDS%E8%AF%8A%E6%96%AD%E5%8D%8F%E8%AE%AE/">#UDS诊断协议</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2024/07/31/UDS%E6%97%B6%E9%97%B4%E5%8F%82%E6%95%B0%E6%80%BB%E7%BB%93/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">UDS时间参数总结</span>
+						<span class="post-nav-item">Prev posts</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2024/07/31/Overview-of-GLIBC-heap-exploitation-techniques/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Overview of GLIBC heap exploitation techniques</span>
+						<span class="post-nav-item">Next posts</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        Comments
+    </div>
+    
+
+        
+            
+    <div id="gitalk-container"></div>
+    <script data-swup-reload-script
+            src="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js"></script>
+    <script data-swup-reload-script>
+
+        function loadGitalk() {
+            let __gitalk__pathname = decodeURI(location.pathname);
+            const __gitalk__pathnameLength = __gitalk__pathname.length;
+            const __gitalk__pathnameMaxLength = 50;
+            if (__gitalk__pathnameLength > __gitalk__pathnameMaxLength) {
+                __gitalk__pathname = __gitalk__pathname.substring(0, __gitalk__pathnameMaxLength - 3) + '...';
+            }
+
+            try {
+                Gitalk && new Gitalk({
+                    clientID: 'Ov23ctdJf8fChgcHijWU',
+                    clientSecret: 'ab085da53c1e5d5699612cc1a17d05a64daa0e25',
+                    repo: 'https://github.com/Idealist17/gitalk',
+                    owner: 'idealist17',
+                    admin: ['idealist17'],
+                    id: __gitalk__pathname,
+                    language: 'en',
+                    proxy: 'https://github.com/login/oauth/access_token'
+                }).render('gitalk-container');
+
+            } catch (e) {
+                window.Gitalk = null;
+            }
+        }
+
+        if ('true') {
+            const loadGitalkTimeout = setTimeout(() => {
+                loadGitalk();
+                clearTimeout(loadGitalkTimeout);
+            }, 1000);
+        } else {
+            window.addEventListener('DOMContentLoaded', loadGitalk);
+        }
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">On this page</div>
+		<div class="page-title">UDS诊断和通信管理</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#UDS-%E5%8A%9F%E8%83%BD%E5%8D%95%E5%85%83"><span class="nav-text">UDS 功能单元</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AF%8A%E6%96%AD%E5%92%8C%E9%80%9A%E4%BF%A1%E7%AE%A1%E7%90%86"><span class="nav-text">诊断和通信管理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#0x10-%E8%AF%8A%E6%96%AD%E4%BC%9A%E8%AF%9D%E6%8E%A7%E5%88%B6"><span class="nav-text">0x10 诊断会话控制</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x11-ECU-%E5%A4%8D%E4%BD%8D"><span class="nav-text">0x11 ECU 复位</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x27-%E5%AE%89%E5%85%A8%E8%AE%BF%E9%97%AE"><span class="nav-text">0x27 安全访问</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#0x28-%E9%80%9A%E4%BF%A1%E6%8E%A7%E5%88%B6"><span class="nav-text">0x28 通信控制</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x29-%E8%AE%A4%E8%AF%81"><span class="nav-text">0x29 认证</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x3E-%E6%B5%8B%E8%AF%95%E8%AE%BE%E5%A4%87%E5%9C%A8%E7%BA%BF"><span class="nav-text">0x3E  测试设备在线</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x83-%E8%AE%BF%E9%97%AE%E6%97%B6%E5%BA%8F%E5%8F%82%E6%95%B0"><span class="nav-text">0x83 访问时序参数</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x85-%E6%8E%A7%E5%88%B6-DTC-%E8%AE%BE%E7%BD%AE"><span class="nav-text">0x85 控制 DTC 设置</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x86-%E4%BA%8B%E4%BB%B6%E5%93%8D%E5%BA%94"><span class="nav-text">0x86 事件响应</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#0x87-%E9%93%BE%E8%B7%AF%E6%8E%A7%E5%88%B6"><span class="nav-text">0x87 链路控制</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2024</span>
+              -
+            
+            2025&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">Chiu</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        35 posts in total
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+            <script data-swup-reload-script src="https://cn.vercount.one/js"></script>
+            <div class="relative text-center lg:absolute lg:right-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-right">
+                
+                    <span id="busuanzi_container_site_uv" class="lg:!block">
+                        <span class="text-sm">VISITOR COUNT</span>
+                        <span id="busuanzi_value_site_uv"></span>
+                    </span>
+                
+                
+                    <span id="busuanzi_container_site_pv" class="lg:!block">
+                        <span class="text-sm">TOTAL PAGE VIEWS</span>
+                        <span id="busuanzi_value_site_pv"></span>
+                    </span>
+                
+            </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">POWERED BY <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a></span>
+            <span class="text-sm lg:block">THEME&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.8.4</a></span>
+        </div>
+        
+        
+            <div>
+                Blog up for <span class="odometer" id="runtime_days" ></span> days <span class="odometer" id="runtime_hours"></span> hrs <span class="odometer" id="runtime_minutes"></span> Min <span class="odometer" id="runtime_seconds"></span> Sec
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container">
+	<img src="">
+</div>
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Search..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    const swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+</script>
+
+
+
+
+	
+<script src="/js/build/tools/imageViewer.js" type="module"></script>
+
+<script src="/js/build/utils.js" type="module"></script>
+
+<script src="/js/build/main.js" type="module"></script>
+
+<script src="/js/build/layouts/navbarShrink.js" type="module"></script>
+
+<script src="/js/build/tools/scrollTopBottom.js" type="module"></script>
+
+<script src="/js/build/tools/lightDarkSwitch.js" type="module"></script>
+
+<script src="/js/build/layouts/categoryList.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/tools/localSearch.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/codeBlock.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/layouts/lazyload.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/runtime.js"></script>
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+  
+<script src="/js/build/plugins/typed.js" type="module"></script>
+
+
+
+
+
+
+    
+<script src="/js/build/libs/minimasonry.min.js"></script>
+
+    
+<script src="/js/build/plugins/masonry.js" type="module"></script>
+
+
+
+
+
+
+
+    
+<script src="/js/build/tools/tocToggle.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/layouts/toc.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/plugins/tabs.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+<script src="/js/build/layouts/essays.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+
+	
+</body>
+
+</html>

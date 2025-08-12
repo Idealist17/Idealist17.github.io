@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Hexo Theme Redefine">
+    
+    <meta name="author" content="Chiu">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set data attribute for CSS variables
+                root.setAttribute("data-theme", theme);
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes once DOM is ready
+            if (document.readyState !== "loading") {
+                document.body.classList.add(theme + "-mode");
+            } else {
+                document.addEventListener("DOMContentLoaded", () => {
+                    document.body.classList.add(theme + "-mode");
+                    document.body.classList.remove((theme === DARK ? LIGHT : DARK) + "-mode");
+                });
+            }
+        })();
+    </script>
+    
+    <!-- Critical CSS to prevent flash -->
+    <style>
+        :root[data-theme="dark"] {
+            --background-color: #202124;
+            --background-color-transparent: rgba(32, 33, 36, 0.6);
+            --second-background-color: #2d2e32;
+            --third-background-color: #34353a;
+            --third-background-color-transparent: rgba(32, 33, 36, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #ffffff;
+            --second-text-color: #eeeeee;
+            --third-text-color: #bebec6;
+            --fourth-text-color: #999999;
+            --default-text-color: #bebec6;
+            --invert-text-color: #373D3F;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(255, 255, 255, 0.08);
+            --shadow-color-2: rgba(255, 255, 255, 0.05);
+        }
+        
+        :root[data-theme="light"] {
+            --background-color: #fff;
+            --background-color-transparent: rgba(255, 255, 255, 0.6);
+            --second-background-color: #f8f8f8;
+            --third-background-color: #f2f2f2;
+            --third-background-color-transparent: rgba(241, 241, 241, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #16171a;
+            --second-text-color: #2f3037;
+            --third-text-color: #5e5e5e;
+            --fourth-text-color: #eeeeee;
+            --default-text-color: #373D3F;
+            --invert-text-color: #bebec6;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(0, 0, 0, 0.08);
+            --shadow-color-2: rgba(0, 0, 0, 0.05);
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+        
+        /* Apply body classes as soon as DOM is ready */
+        :root[data-theme="dark"] body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+    </style>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="http://example.com/2024/07/31/堆相关数据结构/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+    
+        
+        <meta name="description" content="malloc_par在 ptmalloc 中使用 malloc_par 结构体来记录堆管理器的相关参数，该结构体定义于 malloc.c 中，如下： 12345678910111213141516171819202122232425262728struct malloc_par&#123;  &#x2F;* Tunable parameters *&#x2F;  unsigned long trim_threshol">
+<meta property="og:type" content="article">
+<meta property="og:title" content="堆相关数据结构">
+<meta property="og:url" content="http://example.com/2024/07/31/%E5%A0%86%E7%9B%B8%E5%85%B3%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="malloc_par在 ptmalloc 中使用 malloc_par 结构体来记录堆管理器的相关参数，该结构体定义于 malloc.c 中，如下： 12345678910111213141516171819202122232425262728struct malloc_par&#123;  &#x2F;* Tunable parameters *&#x2F;  unsigned long trim_threshol">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/ebb2a964b70e4daaa8fe55e89f25e661.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/fbb26897a9c249bd999318608031b06e.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/d0f645cb87cd4826b71eb297cdd9d0e4.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/8521c38d559844e4989fe856e69123b7.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/c0cbb4aa7ffc41bc9d4732580882eeef.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/ee1e62937658434c98e07324871d367c.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/a4a5ea306b5c48b49cba50067a39d04b.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/281bab0962e34f139b910892472566fe.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/3dcda15845fc4f70b1391aa890b57ab2.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/883e4eaf266d4bf09a7d08b105cb04f8.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/9f4b7d5188884aa7b0862ec88e76a2d7.png">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/85bcbf09c0cd42ca815696e8b4021bef.png">
+<meta property="article:published_time" content="2024-07-31T06:01:08.000Z">
+<meta property="article:modified_time" content="2024-07-31T06:01:53.909Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="PWN">
+<meta property="article:tag" content="Heap">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/ebb2a964b70e4daaa8fe55e89f25e661.png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            堆相关数据结构 | Chiu&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+        
+<script src="/js/build/libs/anime.min.js"></script>
+
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"example.com","root":"/","language":"en"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":null,"default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":true,"site_pv":true,"site_uv":true,"post_pv":true},"single_page":true,"preloader":true,"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":true,"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Input | Think | Output","subtitle":{"text":["How you spend every day is how you spend your life"],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"default","links":{"github":"https://github.com/Idealist17","instagram":null,"zhihu":null,"twitter":null,"email":"ChiuFangxi@gmail.com"},"qrs":{"weixin":null}}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"9.3.0"}},"version":"2.8.4","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Gallery":{"icon":"fa-solid fa-image","path":"/masonry/"},"About":{"icon":"fa-regular fa-user","submenus":{"Me":"/about","Friends":"/friends"}}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur"},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":"Input | Think | Output","show_on_mobile":true,"links":{"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footerStart":"2024/7/30 14:00:00"};
+    window.lang_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+    window.data = {"masonry":true};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<style>
+    :root {
+        --preloader-background-color: #fff;
+        --preloader-text-color: #000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --preloader-background-color: #202124;
+            --preloader-text-color: #fff;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --preloader-background-color: #fff;
+            --preloader-text-color: #000;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .ml13 {
+            font-size: 2.6rem !important; /* Adjust this value as needed */
+        }
+    }
+
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem; /* Tailwind 'gap-4' is 1rem */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        padding: 12px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh; /* 'h-screen' is 100% of the viewport height */
+        background-color: var(--preloader-background-color);
+        z-index: 1100; /* 'z-[1100]' sets the z-index */
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .ml13 {
+        font-size: 3.2rem;
+        /* text-transform: uppercase; */
+        color: var(--preloader-text-color);
+        letter-spacing: -1px;
+        font-weight: 500;
+        font-family: 'Chillax-Variable', sans-serif;
+        text-align: center;
+    }
+
+    .ml13 .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .ml13 .letter {
+        display: inline-block;
+        line-height: 1em;
+    }
+</style>
+
+<div class="preloader">
+    <h2 class="ml13">
+        Chiu&#39;s Blog
+    </h2>
+    <script>
+        var textWrapper = document.querySelector('.ml13');
+        // Split text into words
+        var words = textWrapper.textContent.trim().split(' ');
+
+        // Clear the existing content
+        textWrapper.innerHTML = '';
+
+        // Wrap each word and its letters in spans
+        words.forEach(function(word) {
+            var wordSpan = document.createElement('span');
+            wordSpan.classList.add('word');
+            wordSpan.innerHTML = word.replace(/\S/g, "<span class='letter'>$&</span>");
+            textWrapper.appendChild(wordSpan);
+            textWrapper.appendChild(document.createTextNode(' ')); // Add space between words
+        });
+
+        var animation = anime.timeline({ loop: true })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [20, 0],
+                translateZ: 0,
+                opacity: [0, 1],
+                filter: ['blur(5px)', 'blur(0px)'],
+                easing: "easeOutExpo",
+                duration: 1200,
+                delay: (el, i) => 300 + 20 * i,
+            })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [0, -20],
+                opacity: [1, 0],
+                filter: ['blur(0px)', 'blur(5px)'],
+                easing: "easeInExpo",
+                duration: 1000,
+                delay: (el, i) => 15 * i,
+                complete: function() {
+                    hidePreloader();
+                }
+            }, '-=700');
+
+
+        let themeStatus = JSON.parse(localStorage.getItem('REDEFINE-THEME-STATUS'))?.isDark;
+
+        // If the theme status is not found in local storage, check the preferred color scheme
+        if (themeStatus === undefined || themeStatus === null) {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                themeStatus = 'dark';
+            } else {
+                themeStatus = 'light';
+            }
+        }
+
+        // Now you can use the themeStatus variable in your code
+        if (themeStatus) {
+            document.documentElement.style.setProperty('--preloader-background-color', '#202124');
+            document.documentElement.style.setProperty('--preloader-text-color', '#fff');
+        } else {
+            document.documentElement.style.setProperty('--preloader-background-color', '#fff');
+            document.documentElement.style.setProperty('--preloader-text-color', '#000');
+        }
+
+        window.addEventListener('load', function () {
+            setTimeout(hidePreloader, 5000); // Call hidePreloader after 5000 milliseconds if not already called by animation
+        });
+
+        function hidePreloader() {
+            var preloader = document.querySelector('.preloader');
+            preloader.style.opacity = '0';
+            setTimeout(function () {
+                preloader.style.display = 'none';
+            }, 200);
+        }
+    </script>
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Chiu&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    HOME
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    ARCHIVES
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/masonry/"
+                                        >
+                                    <i class="fa-solid fa-image fa-fw"></i>
+                                    GALLERY
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="has-dropdown"
+                                   href="#"
+                                        onClick=&#34;return false;&#34;>
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    ABOUT
+                                    <i class="fa-solid fa-chevron-down fa-fw"></i>
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                                    <ul class="sub-menu">
+                                        
+                                            <li>
+                                                <a href="/about">
+                                                    ME
+                                                </a>
+                                            </li>
+                                        
+                                            <li>
+                                                <a href="/friends">
+                                                    FRIENDS
+                                                </a>
+                                            </li>
+                                        
+                                    </ul>
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                HOME
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                ARCHIVES
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/masonry/"
+                        >
+                            <span>
+                                GALLERY
+                            </span>
+                            
+                                <i class="fa-solid fa-image fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item-sub text-base my-1.5 flex flex-col w-full">
+                        
+                        <div class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary cursor-pointer text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                             navbar-data-toggle="submenu-About"
+                        >
+                            <span>
+                                ABOUT
+                            </span>
+                            
+                                <i class="fa-solid fa-chevron-right fa-sm fa-fw transition-all"></i>
+                            
+                        </div>
+                        
+
+                        
+                            <div class="flex-col items-start px-2 py-2 hidden" data-target="submenu-About">
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/about">ME</a>
+                                    </div>
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/friends">FRIENDS</a>
+                                    </div>
+                                
+                            </div>
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>Tags</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">22</div>
+        <div class="label text-third-text-color text-sm">Tags</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Categories</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">35</div>
+        <div class="label text-third-text-color text-sm">Posts</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">堆相关数据结构</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] flex-shrink-0 rounded-medium border border-border-color p-[1px]">
+				<img src="/images/redefine-avatar.svg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Chiu</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2024-07-31 14:01:08</span>
+        <span class="mobile">2024-07-31 14:01:08</span>
+        <span class="hover-info">Created</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2024-07-31 14:01:53</span>
+            <span class="mobile">2024-07-31 14:01:53</span>
+            <span class="hover-info">Updated</span>
+        </span>
+    
+
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/PWN/">PWN</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Heap/">Heap</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fa-regular fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h2 id="malloc-par"><a href="#malloc-par" class="headerlink" title="malloc_par"></a>malloc_par</h2><p>在 ptmalloc 中使用 <code>malloc_par</code> 结构体来记录堆管理器的相关参数，该结构体定义于 <code>malloc.c</code> 中，如下：</p>
+<div class="code-container" data-rel="C++"><figure class="iseeu highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">struct</span> <span class="title class_">malloc_par</span></span><br><span class="line">&#123;</span><br><span class="line">  <span class="comment">/* Tunable parameters */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">long</span> trim_threshold;</span><br><span class="line">  INTERNAL_SIZE_T top_pad;</span><br><span class="line">  INTERNAL_SIZE_T mmap_threshold;</span><br><span class="line">  INTERNAL_SIZE_T arena_test;</span><br><span class="line">  INTERNAL_SIZE_T arena_max;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Memory map support */</span></span><br><span class="line">  <span class="type">int</span> n_mmaps;</span><br><span class="line">  <span class="type">int</span> n_mmaps_max;</span><br><span class="line">  <span class="type">int</span> max_n_mmaps;</span><br><span class="line">  <span class="comment">/* the mmap_threshold is dynamic, until the user sets</span></span><br><span class="line"><span class="comment">     it manually, at which point we need to disable any</span></span><br><span class="line"><span class="comment">     dynamic behavior. */</span></span><br><span class="line">  <span class="type">int</span> no_dyn_threshold;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Statistics */</span></span><br><span class="line">  INTERNAL_SIZE_T mmapped_mem;</span><br><span class="line">  <span class="comment">/*INTERNAL_SIZE_T  sbrked_mem;*/</span></span><br><span class="line">  <span class="comment">/*INTERNAL_SIZE_T  max_sbrked_mem;*/</span></span><br><span class="line">  INTERNAL_SIZE_T max_mmapped_mem;</span><br><span class="line">  INTERNAL_SIZE_T max_total_mem;  <span class="comment">/* only kept for NO_THREADS */</span></span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* First address handed out by MORECORE/sbrk.  */</span></span><br><span class="line">  <span class="type">char</span> *sbrk_base;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></div>
+
+<p>主要是定义了和 <code>mmap</code> 和 <code>arena</code> 相关的一些参数（如数量上限等），以及 <code>sbrk</code> 的基址，其中重要的参数解释如下：</p>
+<ul>
+<li><code>top_pad</code>：初始化或扩展堆的时候需要多申请的内存大小。</li>
+<li><code>mmap_threshold</code>：决定 <code>sysmalloc</code> 是通过 <code>mmap</code> 还是 <code>sbrk</code> 分配内存的界限，即如果申请的内存大小不小于该值则采用 <code>mmap</code> 分配，否则采用 <code>sbrk</code> 扩展 <code>heap</code> 区域分配。并且这个值是动态调整的，如果释放的内存是通过 <code>mmap</code> 得到的则 <code>mmap_threshold</code> 与该内存大小取 <code>max</code> 。并且 <code>mmap_threshold</code> 最大不能超过 <code>DEFAULT_MMAP_THRESHOLD_MAX</code> ，即 0x2000000 。</li>
+<li><code>trim_threshold</code>：用于 <code>main_arena</code> 中保留内存量的控制。当释放的 <code>chunk</code> 为 <code>mmap</code> 获得的，同时大小大于 <code>mmap_threshold</code> ，则除了更新 <code>mmap_threshold</code> 外还会将 <code>trim_threshold</code> 乘 2 。当释放的 <code>chunk</code> 大小不在 fast bin 范围合并完 <code>size</code> 大于 <code>FASTBIN_CONSOLIDATION_THRESHOLD</code> 即 0x10000 ，会根据该字段缩小 top chunk 。</li>
+<li><code>n_mmaps</code>：<code>mmap</code> 的内存数量，即 ptmalloc 每次成功 <code>mmap</code> 则 <code>n_mmaps</code> 加 1，ptmalloc 每次成功 <code>munmap</code> 则 <code>n_mmaps</code> 减 1 。</li>
+<li><code>n_mmaps_max</code>：<code>n_mmaps</code> 的上限，即最多能 <code>mmap</code> 的内存数量。</li>
+<li><code>max_n_mmaps</code>：<code>n_mmaps</code> 达到过的最大值。</li>
+<li><code>mmapped_mem</code>：当前 <code>mmap</code> 的内存大小总和。</li>
+<li><code>max_mmapped_mem</code>：<code>mmap</code> 的内存大小总和达到过的最大值。</li>
+<li><code>sbrk_base</code>：表示通过 <code>brk</code> 系统调用申请的 <code>heap</code> 区域的起始地址。</li>
+<li><code>no_dyn_threshold</code>：表示是否禁用 <code>heap</code> 动态调整保留内存的大小，默认为 0 。</li>
+</ul>
+<p>该结构体类型的实例 <code>mp_</code> 用以记录 ptmalloc 相关参数，同样定义于 <code>malloc.c</code> 中，如下：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta"># <span class="keyword">define</span> DEFAULT_TOP_PAD 131072 <span class="comment">// 0x20000</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFAULT_MMAP_MAX       (65536) <span class="comment">// 0x10000</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFAULT_MMAP_THRESHOLD_MIN (128 * 1024)</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFAULT_MMAP_THRESHOLD DEFAULT_MMAP_THRESHOLD_MIN <span class="comment">// 0x20000</span></span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> DEFAULT_TRIM_THRESHOLD (128 * 1024) <span class="comment">// 0x20000</span></span></span><br><span class="line"> </span><br><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">malloc_par</span> <span class="title">mp_</span> =</span></span><br><span class="line">&#123;</span><br><span class="line">  .top_pad = DEFAULT_TOP_PAD,</span><br><span class="line">  .n_mmaps_max = DEFAULT_MMAP_MAX,</span><br><span class="line">  .mmap_threshold = DEFAULT_MMAP_THRESHOLD,</span><br><span class="line">  .trim_threshold = DEFAULT_TRIM_THRESHOLD,</span><br><span class="line"><span class="meta">#<span class="keyword">define</span> NARENAS_FROM_NCORES(n) ((n) * (sizeof (long) == 4 ? 2 : 8))</span></span><br><span class="line">  .arena_test = NARENAS_FROM_NCORES (<span class="number">1</span>)</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></div>
+
+<h2 id="heap-info"><a href="#heap-info" class="headerlink" title="heap_info"></a>heap_info</h2><p><code>heap_info</code> 位于一个 <code>heap</code> 块的开头，用以记录通过 <code>mmap</code> 系统调用从 Memory Mapping Segment 处申请到的内存块的信息。定义于 <code>arena.c</code> 中。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* A heap is a single contiguous memory region holding (coalesceable)</span></span><br><span class="line"><span class="comment">   malloc_chunks.  It is allocated with mmap() and always starts at an</span></span><br><span class="line"><span class="comment">   address aligned to HEAP_MAX_SIZE.  */</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> _<span class="title">heap_info</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  mstate ar_ptr; <span class="comment">/* Arena for this heap. */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> _<span class="title">heap_info</span> *<span class="title">prev</span>;</span> <span class="comment">/* Previous heap. */</span></span><br><span class="line">  <span class="type">size_t</span> size;   <span class="comment">/* Current size in bytes. */</span></span><br><span class="line">  <span class="type">size_t</span> mprotect_size; <span class="comment">/* Size in bytes that has been mprotected</span></span><br><span class="line"><span class="comment">                           PROT_READ|PROT_WRITE.  */</span></span><br><span class="line">  <span class="comment">/* Make sure the following data is properly aligned, particularly</span></span><br><span class="line"><span class="comment">     that sizeof (heap_info) + 2 * SIZE_SZ is a multiple of</span></span><br><span class="line"><span class="comment">     MALLOC_ALIGNMENT. */</span></span><br><span class="line">  <span class="type">char</span> pad[<span class="number">-6</span> * SIZE_SZ &amp; MALLOC_ALIGN_MASK];</span><br><span class="line">&#125; heap_info;</span><br></pre></td></tr></table></figure></div>
+
+<p><code>heap_info</code> 结构体的成员如下：</p>
+<ul>
+<li><code>ar_ptr</code>：指向管理该堆块的 arena</li>
+<li><code>prev</code>：该heap_info所链接的上一个 heap_info</li>
+<li><code>size</code>：记录该堆块的大小</li>
+<li><code>mprotect_size</code>：记录该堆块中被保护（<code>mprotected</code>）的大小</li>
+<li><code>pad</code>：即 <code>padding</code> ，用以在 <code>SIZE_SZ</code> 不正常的情况下进行填充以让内存对齐，正常情况下 <code>pad</code> 所占用空间应为 0 字节</li>
+</ul>
+<h2 id="arena"><a href="#arena" class="headerlink" title="arena"></a>arena</h2><p>大部分情况下对于每个线程而言其都会单独有着一个 <code>arena</code> 实例用以管理属于该线程的堆内存区域。<code>ptmalloc</code> 内部的内存池结构是由 <code>malloc_state</code> 结构体进行定义的，即 <code>arena</code> 本身便为 <code>malloc_state</code> 的一个实例对象。<br><code>malloc_state</code> 结构体定义于<code>malloc/malloc.c</code> 中，代码如下：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">malloc_state</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="comment">/* Serialize access.  */</span></span><br><span class="line">  <span class="type">mutex_t</span> mutex;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Flags (formerly in max_fast).  */</span></span><br><span class="line">  <span class="type">int</span> flags;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Fastbins */</span></span><br><span class="line">  mfastbinptr fastbinsY[NFASTBINS];</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Base of the topmost chunk -- not otherwise kept in a bin */</span></span><br><span class="line">  mchunkptr top;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* The remainder from the most recent split of a small request */</span></span><br><span class="line">  mchunkptr last_remainder;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Normal bins packed as described above */</span></span><br><span class="line">  mchunkptr bins[NBINS * <span class="number">2</span> - <span class="number">2</span>];</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Bitmap of bins */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">int</span> binmap[BINMAPSIZE];</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Linked list */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">malloc_state</span> *<span class="title">next</span>;</span></span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Linked list for free arenas.  Access to this field is serialized</span></span><br><span class="line"><span class="comment">     by free_list_lock in arena.c.  */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">malloc_state</span> *<span class="title">next_free</span>;</span></span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Number of threads attached to this arena.  0 if the arena is on</span></span><br><span class="line"><span class="comment">     the free list.  Access to this field is serialized by</span></span><br><span class="line"><span class="comment">     free_list_lock in arena.c.  */</span></span><br><span class="line">  INTERNAL_SIZE_T attached_threads;</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Memory allocated from the system in this arena.  */</span></span><br><span class="line">  INTERNAL_SIZE_T system_mem;</span><br><span class="line">  INTERNAL_SIZE_T max_system_mem;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></div>
+
+<p><code>malloc_state</code> 结构体的成员如下：</p>
+<ul>
+<li><code>mutex</code>：<code>mutex</code> 变量即为多线程互斥锁，用以保证线程安全。</li>
+<li><code>flags</code>：标志位，用以表示 <code>arena</code> 的一些状态，如：是否有 <code>fastbin</code> 、内存是否连续等。</li>
+<li><code>fastbinY</code>：存放 fastbin chunk 的数组。</li>
+<li><code>top</code>：指向 Top Chunk 的指针。</li>
+<li><code>last_remainder</code>：<code>chunk</code> 切割中的剩余部分。<code>malloc</code> 在分配 <code>chunk</code> 时若是没找到 <code>size</code> 合适的 <code>chunk</code> 而是找到了一个 <code>size</code> 更大的 <code>chunk</code> ，则会从大 <code>chunk</code> 中切割掉一块返回给用户，剩下的那一块便是 <code>last_remainder</code> ，其随后会被放入 unsorted bin 中。</li>
+<li><code>bins</code>：存放闲置 <code>chunk</code> 的数组。<code>bins</code> 包括 large bin，small bin 和 unsorted bin 。</li>
+<li><code>binmap</code>：记录 <code>bin</code> 是否为空的 <code>bitset</code> 。需要注意的是 <code>chunk</code> 被取出后若一个 <code>bin</code> 空了并不会立即被置 0 ，而会在下一次遍历到时重新置位。</li>
+<li><code>next</code>：指向下一个 <code>arena</code> 的指针。一个进程内所有的 <code>arena</code> 串成了一条循环单向链表，<code>malloc_state</code> 中的 <code>next</code> 指针便是用以指向下一个 <code>arena</code> ，方便后续的遍历 <code>arena</code> 的操作（因为不是所有的线程都有自己独立的 <code>arena</code> ）。</li>
+<li><code>next_free</code>：指向下一个空闲的 <code>arena</code> 的指针。与 <code>next</code> 指针类似，只不过指向的是空闲的 <code>arena</code>（即没有被任一线程所占用）。</li>
+<li><code>attached_threads</code>：与该 <code>arena</code> 相关联的线程数。该变量用以表示有多少个线程与该<code>arena</code> 相关联，这是因为 <code>aerna</code> 的数量是有限的，并非每一个线程都有机会分配到一个<code>arena</code>，在线程数量较大的情况下会存在着多个线程共用一个 <code>arena</code> 的情况。</li>
+<li><code>system_mem</code>：记录当前 <code>arena</code> 在堆区中所分配到的内存的总大小。</li>
+<li><code>max_system_mem</code>：当操作系统予进程以内存时，<code>system_mem</code> 会随之增大，当内存被返还给操作系统时，<code>sysyetm_mem</code> 会随之减小，<code>max_system_mem</code> 变量便是用来记录在这个过程当中 <code>system_mem</code> 的峰值。</li>
+</ul>
+<p><code>main_arena</code> 为一个定义于 <code>malloc.c</code> 中的静态的 <code>malloc_state</code> 结构体。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">malloc_state</span> <span class="title">main_arena</span> =</span></span><br><span class="line">&#123;</span><br><span class="line">  .mutex = _LIBC_LOCK_INITIALIZER,</span><br><span class="line">  .next = &amp;main_arena,</span><br><span class="line">  .attached_threads = <span class="number">1</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></div>
+
+<p>由于其为 libc 中的静态变量，该 <code>arena</code> 会被随着 libc 文件一同加载到 Memory Mapping Segment。因此在堆题中通常通过泄露 <code>arena</code> 的地址以获得 libc 在内存中的基地址。</p>
+<h2 id="chunk"><a href="#chunk" class="headerlink" title="chunk"></a>chunk</h2><p>在程序的执行过程中，我们称由 <code>malloc</code> 申请的内存为 <code>chunk</code> 。这块内存在 <code>ptmalloc</code> 内部用 <code>malloc_chunk</code> 结构体来表示。当程序申请的 <code>chunk</code> 被 <code>free</code> 后，会被加入到相应的空闲管理列表中。<br><code>malloc_chunk</code> 定义如下：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">malloc_chunk</span> &#123;</span></span><br><span class="line"> </span><br><span class="line">  INTERNAL_SIZE_T      prev_size;  <span class="comment">/* Size of previous chunk (if free).  */</span></span><br><span class="line">  INTERNAL_SIZE_T      size;       <span class="comment">/* Size in bytes, including overhead. */</span></span><br><span class="line"> </span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">malloc_chunk</span>* <span class="title">fd</span>;</span>         <span class="comment">/* double links -- used only if free. */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">malloc_chunk</span>* <span class="title">bk</span>;</span></span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* Only used for large blocks: pointer to next larger size.  */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">malloc_chunk</span>* <span class="title">fd_nextsize</span>;</span> <span class="comment">/* double links -- used only if free. */</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">malloc_chunk</span>* <span class="title">bk_nextsize</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure></div>
+
+<p>每个字段的具体的解释如下：</p>
+<ul>
+<li><p><code>prev_size</code>：如果物理相邻的前一地址 <code>chunk</code> 是空闲的话，那该字段记录的是前一个 <code>chunk</code> 的大小 (包括 <code>chunk</code> 头)。否则，该字段可以用来存储物理相邻的前一个 <code>chunk</code> 的数据。</p>
+</li>
+<li><p><code>size</code>：该 <code>chunk</code> 的大小，大小必须是 <code>2 * SIZE_SZ</code> 的整数倍。该字段的低三个比特位对 <code>chunk</code> 的大小没有影响，它们从高到低分别表示为：</p>
+<ul>
+<li><code>NON_MAIN_ARENA</code>，记录当前 <code>chunk</code> 是否不属于主线程，1 表示不属于，0 表示属于。</li>
+<li><code>IS_MAPPED</code>，记录当前 <code>chunk</code> 是否是由 <code>mmap</code> 分配的。</li>
+<li><code>PREV_INUSE</code>，记录前一个 <code>chunk</code> 块是否被分配。一般来说，堆中第一个被分配的内存块的 <code>size</code> 字段的 <code>P</code> 位都会被设置为 1，以便于防止访问前面的非法内存。当一个 <code>chunk</code> 的 <code>size</code> 的 <code>P</code> 位为 0 时，我们能通过 <code>prev_size</code> 字段来获取上一个 <code>chunk</code> 的大小以及地址。这也方便进行空闲 <code>chunk</code> 之间的合并。</li>
+</ul>
+</li>
+<li><p><code>fd</code>，<code>bk</code>。 <code>chunk</code> 处于分配状态时，从 <code>fd</code> 字段开始是用户的数据。<code>chunk</code> 空闲时，会被添加到对应的空闲管理链表中，其字段的含义如下</p>
+<ul>
+<li><code>fd</code> 指向下一个（非物理相邻）空闲的 <code>chunk</code></li>
+<li><code>bk</code> 指向上一个（非物理相邻）空闲的 <code>chunk</code></li>
+</ul>
+<p>通过 <code>fd</code> 和 <code>bk</code> 可以将空闲的 <code>chunk</code> 块加入到空闲的 <code>chunk</code> 块链表进行统一管理</p>
+</li>
+<li><p><code>fd_nextsize</code>， <code>bk_nextsize</code>，也是只有 <code>chunk</code> 空闲的时候才使用，不过其用于较大的 <code>chunk</code>（large chunk）。</p>
+<ul>
+<li><code>fd_nextsize</code> 指向前一个与当前 <code>chunk</code> 大小不同的第一个空闲块，不包含 <code>bin</code> 的头指针。</li>
+<li><code>bk_nextsize</code> 指向后一个与当前 <code>chunk</code> 大小不同的第一个空闲块，不包含 bin 的头指针。</li>
+<li>一般空闲的 large chunk 在 <code>fd</code> 的遍历顺序中，按照由大到小的顺序排列。这样做可以避免在寻找合适 <code>chunk</code> 时挨个遍历。（<del>好在 large bin 限制了值域范围，不然也会很慢</del> ）</li>
+</ul>
+</li>
+</ul>
+<p><code>chunk</code> 的结构如下图所示：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/ebb2a964b70e4daaa8fe55e89f25e661.png"
+                      alt="图片描述"
+                ></p>
+<h2 id="bins"><a href="#bins" class="headerlink" title="bins"></a>bins</h2><p>我们曾经说过，用户释放掉的 <code>chunk</code> 不会马上归还给系统，ptmalloc 会统一管理 <code>heap</code> 和 <code>mmap</code> 映射区域中的空闲的 <code>chunk</code>。当用户再一次请求分配内存时，<code>ptmalloc</code> 分配器会试图在空闲的 <code>chunk</code> 中挑选一块合适的给用户。这样可以避免频繁的系统调用，降低内存分配的开销。<br>在具体的实现中，ptmalloc 采用分箱式方法对空闲的 <code>chunk</code> 进行管理。首先，它会根据空闲的 <code>chunk</code> 的大小以及使用状态将 <code>chunk</code> 初步分为 4 类：fast bins，small bins，large bins，unsorted bin 。对于 libc2.26 以上版本还有 <code>tcache</code> 。</p>
+<h3 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h3><p>对于 small bins，large bins，unsorted bin 来说，ptmalloc 将它们维护在一个 <code>bins</code> 数组中。这些 <code>bin</code> 对应的数据结构在 <code>malloc_state</code> 中，如下：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> NBINS 128</span></span><br><span class="line"><span class="comment">/* Normal bins packed as described above */</span></span><br><span class="line">mchunkptr bins[ NBINS * <span class="number">2</span> - <span class="number">2</span> ];</span><br></pre></td></tr></table></figure></div>
+
+<p><code>bins</code> 数组实际上可以看做是以 <code>chunk</code> 为单位，只不过采用空间复用策略，因为实际用到的只有 <code>fd</code> 和 <code>bk</code> 。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* addressing -- note that bin_at(0) does not exist */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> bin_at(m, i) \</span></span><br><span class="line"><span class="meta">  (mbinptr) (((char *) &amp;((m)-&gt;bins[((i) - 1) * 2]))                \</span></span><br><span class="line"><span class="meta">             - offsetof (struct malloc_chunk, fd))</span></span><br></pre></td></tr></table></figure></div>
+
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/fbb26897a9c249bd999318608031b06e.png"
+                      alt="在这里插入图片描述"
+                ></p>
+<p>由于是双链表结构 <code>bins</code> 数组每连续两个 <code>chunk</code> 指针维护一个 <code>bin</code>（即 <code>fd</code> 和 <code>bk</code> ），其结构如下图所示（64位）。其中 small bins 中 <code>chunk</code> 大小已给出。large bins 的每个 <code>bin</code> 中的 <code>chunk</code> 大小在一个范围内。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/d0f645cb87cd4826b71eb297cdd9d0e4.png"
+                      alt="在这里插入图片描述"
+                ></p>
+<p>large bin 的 <code>chunk</code> 范围如下：</p>
+<table>
+<thead>
+<tr>
+<th>编号</th>
+<th>64位最小</th>
+<th>64位最大</th>
+<th>64位公差</th>
+<th>32位最小</th>
+<th>32位最大</th>
+<th>32位公差</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>64</td>
+<td>0x400</td>
+<td>0x430</td>
+<td>0x40</td>
+<td>0x200</td>
+<td>0x238</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>65</td>
+<td>0x440</td>
+<td>0x470</td>
+<td>0x40</td>
+<td>0x240</td>
+<td>0x278</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>66</td>
+<td>0x480</td>
+<td>0x4b0</td>
+<td>0x40</td>
+<td>0x280</td>
+<td>0x2b8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>67</td>
+<td>0x4c0</td>
+<td>0x4f0</td>
+<td>0x40</td>
+<td>0x2c0</td>
+<td>0x2f8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>68</td>
+<td>0x500</td>
+<td>0x530</td>
+<td>0x40</td>
+<td>0x300</td>
+<td>0x338</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>69</td>
+<td>0x540</td>
+<td>0x570</td>
+<td>0x40</td>
+<td>0x340</td>
+<td>0x378</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>70</td>
+<td>0x580</td>
+<td>0x5b0</td>
+<td>0x40</td>
+<td>0x380</td>
+<td>0x3b8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>71</td>
+<td>0x5c0</td>
+<td>0x5f0</td>
+<td>0x40</td>
+<td>0x3c0</td>
+<td>0x3f8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>72</td>
+<td>0x600</td>
+<td>0x630</td>
+<td>0x40</td>
+<td>0x400</td>
+<td>0x438</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>73</td>
+<td>0x640</td>
+<td>0x670</td>
+<td>0x40</td>
+<td>0x440</td>
+<td>0x478</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>74</td>
+<td>0x680</td>
+<td>0x6b0</td>
+<td>0x40</td>
+<td>0x480</td>
+<td>0x4b8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>75</td>
+<td>0x6c0</td>
+<td>0x6f0</td>
+<td>0x40</td>
+<td>0x4c0</td>
+<td>0x4f8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>76</td>
+<td>0x700</td>
+<td>0x730</td>
+<td>0x40</td>
+<td>0x500</td>
+<td>0x538</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>77</td>
+<td>0x740</td>
+<td>0x770</td>
+<td>0x40</td>
+<td>0x540</td>
+<td>0x578</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>78</td>
+<td>0x780</td>
+<td>0x7b0</td>
+<td>0x40</td>
+<td>0x580</td>
+<td>0x5b8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>79</td>
+<td>0x7c0</td>
+<td>0x7f0</td>
+<td>0x40</td>
+<td>0x5c0</td>
+<td>0x5f8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>80</td>
+<td>0x800</td>
+<td>0x830</td>
+<td>0x40</td>
+<td>0x600</td>
+<td>0x638</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>81</td>
+<td>0x840</td>
+<td>0x870</td>
+<td>0x40</td>
+<td>0x640</td>
+<td>0x678</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>82</td>
+<td>0x880</td>
+<td>0x8b0</td>
+<td>0x40</td>
+<td>0x680</td>
+<td>0x6b8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>83</td>
+<td>0x8c0</td>
+<td>0x8f0</td>
+<td>0x40</td>
+<td>0x6c0</td>
+<td>0x6f8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>84</td>
+<td>0x900</td>
+<td>0x930</td>
+<td>0x40</td>
+<td>0x700</td>
+<td>0x738</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>85</td>
+<td>0x940</td>
+<td>0x970</td>
+<td>0x40</td>
+<td>0x740</td>
+<td>0x778</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>86</td>
+<td>0x980</td>
+<td>0x9b0</td>
+<td>0x40</td>
+<td>0x780</td>
+<td>0x7b8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>87</td>
+<td>0x9c0</td>
+<td>0x9f0</td>
+<td>0x40</td>
+<td>0x7c0</td>
+<td>0x7f8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>88</td>
+<td>0xa00</td>
+<td>0xa30</td>
+<td>0x40</td>
+<td>0x800</td>
+<td>0x838</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>89</td>
+<td>0xa40</td>
+<td>0xa70</td>
+<td>0x40</td>
+<td>0x840</td>
+<td>0x878</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>90</td>
+<td>0xa80</td>
+<td>0xab0</td>
+<td>0x40</td>
+<td>0x880</td>
+<td>0x8b8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>91</td>
+<td>0xac0</td>
+<td>0xaf0</td>
+<td>0x40</td>
+<td>0x8c0</td>
+<td>0x8f8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>92</td>
+<td>0xb00</td>
+<td>0xb30</td>
+<td>0x40</td>
+<td>0x900</td>
+<td>0x938</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>93</td>
+<td>0xb40</td>
+<td>0xb70</td>
+<td>0x40</td>
+<td>0x940</td>
+<td>0x978</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>94</td>
+<td>0xb80</td>
+<td>0xbb0</td>
+<td>0x40</td>
+<td>0x980</td>
+<td>0x9b8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>95</td>
+<td>0xbc0</td>
+<td>0xbf0</td>
+<td>0x40</td>
+<td>0x9c0</td>
+<td>0x9f8</td>
+<td>0x40</td>
+</tr>
+<tr>
+<td>96</td>
+<td>0xc00</td>
+<td>0xc30</td>
+<td>0x40</td>
+<td>0xa00</td>
+<td>0xbf8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>97</td>
+<td>0xc40</td>
+<td>0xdf0</td>
+<td>0x1c0</td>
+<td>0xc00</td>
+<td>0xdf8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>98</td>
+<td>0xe00</td>
+<td>0xff0</td>
+<td>0x200</td>
+<td>0xe00</td>
+<td>0xff8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>99</td>
+<td>0x1000</td>
+<td>0x11f0</td>
+<td>0x200</td>
+<td>0x1000</td>
+<td>0x11f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>100</td>
+<td>0x1200</td>
+<td>0x13f0</td>
+<td>0x200</td>
+<td>0x1200</td>
+<td>0x13f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>101</td>
+<td>0x1400</td>
+<td>0x15f0</td>
+<td>0x200</td>
+<td>0x1400</td>
+<td>0x15f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>102</td>
+<td>0x1600</td>
+<td>0x17f0</td>
+<td>0x200</td>
+<td>0x1600</td>
+<td>0x17f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>103</td>
+<td>0x1800</td>
+<td>0x19f0</td>
+<td>0x200</td>
+<td>0x1800</td>
+<td>0x19f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>104</td>
+<td>0x1a00</td>
+<td>0x1bf0</td>
+<td>0x200</td>
+<td>0x1a00</td>
+<td>0x1bf8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>105</td>
+<td>0x1c00</td>
+<td>0x1df0</td>
+<td>0x200</td>
+<td>0x1c00</td>
+<td>0x1df8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>106</td>
+<td>0x1e00</td>
+<td>0x1ff0</td>
+<td>0x200</td>
+<td>0x1e00</td>
+<td>0x1ff8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>107</td>
+<td>0x2000</td>
+<td>0x21f0</td>
+<td>0x200</td>
+<td>0x2000</td>
+<td>0x21f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>108</td>
+<td>0x2200</td>
+<td>0x23f0</td>
+<td>0x200</td>
+<td>0x2200</td>
+<td>0x23f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>109</td>
+<td>0x2400</td>
+<td>0x25f0</td>
+<td>0x200</td>
+<td>0x2400</td>
+<td>0x25f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>110</td>
+<td>0x2600</td>
+<td>0x27f0</td>
+<td>0x200</td>
+<td>0x2600</td>
+<td>0x27f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>111</td>
+<td>0x2800</td>
+<td>0x29f0</td>
+<td>0x200</td>
+<td>0x2800</td>
+<td>0x29f8</td>
+<td>0x200</td>
+</tr>
+<tr>
+<td>112</td>
+<td>0x2a00</td>
+<td>0x2ff0</td>
+<td>0x600</td>
+<td>0x2a00</td>
+<td>0x2ff8</td>
+<td>0x600</td>
+</tr>
+<tr>
+<td>113</td>
+<td>0x3000</td>
+<td>0x3ff0</td>
+<td>0x1000</td>
+<td>0x3000</td>
+<td>0x3ff8</td>
+<td>0x1000</td>
+</tr>
+<tr>
+<td>114</td>
+<td>0x4000</td>
+<td>0x4ff0</td>
+<td>0x1000</td>
+<td>0x4000</td>
+<td>0x4ff8</td>
+<td>0x1000</td>
+</tr>
+<tr>
+<td>115</td>
+<td>0x5000</td>
+<td>0x5ff0</td>
+<td>0x1000</td>
+<td>0x5000</td>
+<td>0x5ff8</td>
+<td>0x1000</td>
+</tr>
+<tr>
+<td>116</td>
+<td>0x6000</td>
+<td>0x6ff0</td>
+<td>0x1000</td>
+<td>0x6000</td>
+<td>0x6ff8</td>
+<td>0x1000</td>
+</tr>
+<tr>
+<td>117</td>
+<td>0x7000</td>
+<td>0x7ff0</td>
+<td>0x1000</td>
+<td>0x7000</td>
+<td>0x7ff8</td>
+<td>0x1000</td>
+</tr>
+<tr>
+<td>118</td>
+<td>0x8000</td>
+<td>0x8ff0</td>
+<td>0x1000</td>
+<td>0x8000</td>
+<td>0x8ff8</td>
+<td>0x1000</td>
+</tr>
+<tr>
+<td>119</td>
+<td>0x9000</td>
+<td>0x9ff0</td>
+<td>0x1000</td>
+<td>0x9000</td>
+<td>0x9ff8</td>
+<td>0x1000</td>
+</tr>
+<tr>
+<td>120</td>
+<td>0xa000</td>
+<td>0xfff0</td>
+<td>0x6000</td>
+<td>0xa000</td>
+<td>0xfff8</td>
+<td>0x6000</td>
+</tr>
+<tr>
+<td>121</td>
+<td>0x10000</td>
+<td>0x17ff0</td>
+<td>0x8000</td>
+<td>0x10000</td>
+<td>0x17ff8</td>
+<td>0x8000</td>
+</tr>
+<tr>
+<td>122</td>
+<td>0x18000</td>
+<td>0x1fff0</td>
+<td>0x8000</td>
+<td>0x18000</td>
+<td>0x1fff8</td>
+<td>0x8000</td>
+</tr>
+<tr>
+<td>123</td>
+<td>0x20000</td>
+<td>0x27ff0</td>
+<td>0x8000</td>
+<td>0x20000</td>
+<td>0x27ff8</td>
+<td>0x8000</td>
+</tr>
+<tr>
+<td>124</td>
+<td>0x28000</td>
+<td>0x3fff0</td>
+<td>0x18000</td>
+<td>0x28000</td>
+<td>0x3fff8</td>
+<td>0x18000</td>
+</tr>
+<tr>
+<td>125</td>
+<td>0x40000</td>
+<td>0x7fff0</td>
+<td>0x40000</td>
+<td>0x40000</td>
+<td>0x7fff8</td>
+<td>0x40000</td>
+</tr>
+<tr>
+<td>126</td>
+<td>0x80000</td>
+<td>inf</td>
+<td></td>
+<td>0x80000</td>
+<td>inf</td>
+<td></td>
+</tr>
+</tbody></table>
+<p>对于 fast bin ，在 <code>malloc_state</code> 又单独定义了一个 <code>fastbinsY</code> 的结构维护。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">malloc_chunk</span> *<span class="title">mfastbinptr</span>;</span></span><br><span class="line"> </span><br><span class="line"><span class="comment">/*</span></span><br><span class="line"><span class="comment">    This is in malloc_state.</span></span><br><span class="line"><span class="comment">    /* Fastbins */</span></span><br><span class="line">    mfastbinptr fastbinsY[ NFASTBINS ];</span><br><span class="line">*/</span><br></pre></td></tr></table></figure></div>
+
+<p>由于 fast bin 为单链表结构，因此数组中一个指针就可以维护一个 <code>bin</code> 。结构如图所示：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/8521c38d559844e4989fe856e69123b7.png"
+                      alt="在这里插入图片描述"
+                ></p>
+<h3 id="Fast-Bin"><a href="#Fast-Bin" class="headerlink" title="Fast Bin"></a>Fast Bin</h3><p>为了避免大部分时间花在了合并、分割以及中间检查的过程中影响效率，因此 ptmalloc 中专门设计了 fast bin。<br>fast bin 采用单链表形式，结构如下图所示：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/c0cbb4aa7ffc41bc9d4732580882eeef.png"
+                      alt="图片描述"
+                ></p>
+<p>fast bin 有如下性质：</p>
+<ul>
+<li>由于采用单链表结构，fast bin 采取 LIFO 策略。</li>
+<li>每个 fast bin 中维护的 chunk 大小确定，并且 fast bin 维护的最大的 <code>chunk</code> 为 128 字节（64位），因此不超过 0x80（<code>chunk</code> 大小）的内存释放会进入 fast bin 。</li>
+<li>fast bin 范围的 <code>chunk</code> <strong>下一个相邻 <code>chunk</code></strong> 的 <code>PREV_INUSE</code> 始终被置为 1。因此它们不会和其它被释放的 <code>chunk</code> 合并。除非调用 <code>malloc_consolidate</code> 函数。</li>
+</ul>
+<p>安全检查：</p>
+<ul>
+<li><code>size</code>：在 <code>malloc()</code> 函数分配 fastbin size 范围的 <code>chunk</code> 时，若是对应的 <code>fastbin</code> 中有空闲 <code>chunk</code>，在取出前会检查其 <code>size</code> 域与对应下标是否一致，不会检查标志位，若否便会触发<code>abort</code> 。</li>
+<li>double free：在 <code>free()</code> 函数中会对 fast bin 链表的头结点进行检查，若将要被放入 fast bin 中的 <code>chunk</code> 与对应下标的链表的头结点为同一 <code>chunk</code>，则会触发 <code>abort</code> 。</li>
+<li>Safe linking 机制（only glibc2.32 and up）：自 glibc 2.32 起引入了 safe-linking 机制，其核心思想是在链表上的 <code>chunk</code> 中并不直接存放其所连接的下一个 <code>chunk</code> 的地址，而是存放下一个 <code>chunk</code> 的地址与【 <code>fd</code> 指针自身地址右移 12位】所异或得的值，使得攻击者在得知该 <code>chunk</code> 的地址之前无法直接利用其构造任意地址写。</li>
+</ul>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="keyword">define</span> PROTECT_PTR(pos, ptr) \</span></span><br><span class="line"><span class="meta">  ((__typeof (ptr)) ((((size_t) pos) &gt;&gt; 12) ^ ((size_t) ptr)))</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> REVEAL_PTR(ptr)  PROTECT_PTR (&amp;ptr, ptr)</span></span><br></pre></td></tr></table></figure></div>
+
+<p>需要注意的是 fast bin 的入口节点存放的仍是未经异或的 <code>chunk</code> 地址。<br>另外第一个加入 fast bin 的 <code>chunk</code> 的 <code>fd</code> 字段可以泄露堆地址（右移 12 位）。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">unsigned</span> <span class="type">int</span> idx = fastbin_index(size);</span><br><span class="line">  fb = &amp;fastbin (av, idx);</span><br><span class="line">  mchunkptr old = *fb, old2;</span><br><span class="line">  ...</span><br><span class="line">p-&gt;fd = PROTECT_PTR (&amp;p-&gt;fd, old);</span><br><span class="line">*fb = p;</span><br></pre></td></tr></table></figure></div>
+
+<h3 id="Small-Bin"><a href="#Small-Bin" class="headerlink" title="Small Bin"></a>Small Bin</h3><p>small bin 采用双向链表，结构如下图所示。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/ee1e62937658434c98e07324871d367c.png"
+                      alt="图片描述"
+                ></p>
+<p>small bin 有如下性质：</p>
+<ul>
+<li>small bins 中每个 <code>bin</code> 对应的链表采用 FIFO 的规则。</li>
+<li>每个 small bin 维护的 <code>chunk</code> 大小确定，并且 small bin 维护的最大的 <code>chunk</code> 为 1008 字节（64位），即 0x3f0 的 <code>chunk</code> 大小。</li>
+</ul>
+<h3 id="Large-Bin"><a href="#Large-Bin" class="headerlink" title="Large Bin"></a>Large Bin</h3><p>large bins 中一共包括 63 个 <code>bin</code>，每个 <code>bin</code> 中的 <code>chunk</code> 的大小不一致，而是处于一定区间范围内。large bin 的结构如下：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/a4a5ea306b5c48b49cba50067a39d04b.png"
+                      alt="图片描述"
+                ></p>
+<p>关于 <code>fd_nextsize</code> 和 <code>bk_nextsize</code> 的机制，这里以 <code>fd_nextsize</code> 为例：</p>
+<ul>
+<li><code>fd_nextsize</code> 和 <code>bk_nextsize</code> 与 <code>bins</code> 数组没有连接关系（这就解释了为什么 <code>bins</code> 上 没有体现 <code>fd_nextsize</code> 和 <code>bk_nextsize</code> 结构）。</li>
+<li>large bin 里的 <code>chunk</code> 在 <code>fd</code> 指针指向的方向上按照 <code>chunk</code> 大小降序排序。</li>
+<li>当 large bin 里有一个 <code>chunk</code> 时， <code>fd_nextsize</code> 和 <code>bk_nextsize</code> 指向自己（如上面 large bin 的结构图所示）。</li>
+<li>当 large bin 里同一大小的 <code>chunk</code> 有多个时，只有相同大小 <code>chunk</code> 中的第一个的 <code>fd_nextsize</code> 和 <code>bk_nextsize</code> 指针有效，其余的 <code>chunk</code> 的 <code>fd_nextsize</code> 和 <code>bk_nextsize</code> 设为 NULL 。</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/281bab0962e34f139b910892472566fe.png"
+                      alt="在这里插入图片描述"
+                ></p>
+<ul>
+<li>arge bin 中有多个不同大小的 <code>chunk</code> 时 <code>fd_nextsize</code> 连接比它小的第一个 <code>chunk</code> ，<code>bk_nextsize</code> 就是把 <code>fd_nextsize</code> 反过来连到对应结构上。</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/3dcda15845fc4f70b1391aa890b57ab2.png"
+                      alt="在这里插入图片描述"
+                ></p>
+<ul>
+<li>large bin 最小的一组 <code>chunk</code> 中的第一个 <code>chunk</code> 的 <code>fd_nextsize</code> 连接的是最大的 <code>chunk</code>，最大的 <code>chunk</code> 的 <code>bk_nextsize</code> 相反。</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/883e4eaf266d4bf09a7d08b105cb04f8.png"
+                      alt="在这里插入图片描述"
+                ></p>
+<h3 id="Unsorted-Bin"><a href="#Unsorted-Bin" class="headerlink" title="Unsorted Bin"></a>Unsorted Bin</h3><p>unsorted bin 可以视为空闲 <code>chunk</code> 回归其所属 <code>bin</code> 之前的缓冲区。像 small bin 一样采用双向链表维护。<code>chunk</code> 大小乱序。</p>
+<h2 id="Top-Chunk"><a href="#Top-Chunk" class="headerlink" title="Top Chunk"></a>Top Chunk</h2><p>程序第一次进行 <code>malloc</code> 的时候，<code>heap</code> 会被分为两块，一块给用户，剩下的那块就是 top chunk。其实，所谓的 top chunk 就是处于当前堆的物理地址最高的 <code>chunk</code> 。这个 <code>chunk</code> 不属于任何一个 <code>bin</code> ，它的作用在于当所有的 <code>bin</code> 都无法满足用户请求的大小时，如果其大小不小于指定的大小，就进行分配，并将剩下的部分作为新的 top chunk。否则，就对 <code>heap</code> 进行扩展后再进行分配。在 <code>main_arena</code> 中通过 <code>sbrk</code> 扩展 <code>heap</code>，而在 <code>thread arena</code> 中通过 <code>mmap</code> 分配新的 <code>heap </code>。<br>需要注意的是，top chunk 的 <code>prev_inuse</code> 比特位始终为 1，否则其前面的 <code>chunk</code> 就会被合并到 top chunk 中。</p>
+<h2 id="last-remainder"><a href="#last-remainder" class="headerlink" title="last remainder"></a>last remainder</h2><p>在用户使用 <code>malloc</code> 请求分配内存时，ptmalloc2 找到的 <code>chunk</code> 可能并不和申请的内存大小一致，这时候就将分割之后的剩余部分称之为 last remainder chunk ，unsort bin 也会存这一块。top chunk 分割剩下的部分不会作为 <code>last_remainder</code> 。</p>
+<h2 id="tcache"><a href="#tcache" class="headerlink" title="tcache"></a>tcache</h2><p><code>tcache</code> 是 glibc 2.26 (ubuntu 17.10) 之后引入的一种技术，目的是提升堆管理的性能，与 fast bin 类似。<code>tcache</code> 引入了两个新的结构体，<code>tcache_entry</code> 和 <code>tcache_perthread_struct</code> 。</p>
+<p><code>tcache_entry</code> 定义如下：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">tcache_entry</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">tcache_entry</span> *<span class="title">next</span>;</span></span><br><span class="line">&#125; tcache_entry;</span><br></pre></td></tr></table></figure></div>
+
+<p><code>tcache_entry</code> 用于链接空闲的 <code>chunk</code> 结构体，其中的 <code>next</code> 指针指向下一个大小相同的 chunk。需要注意的是这里的 <code>next</code> 指向 <code>chunk</code> 的 user data，而 fast bin 的 <code>fd</code> 指向 <code>chunk</code> 开头的地址。而且，<code>tcache_entry</code> 会复用空闲 <code>chunk</code> 的 user data 部分。</p>
+<p><code>tcache_perthread_struct</code> 定义如下：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">tcache_perthread_struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="type">char</span> counts[TCACHE_MAX_BINS];</span><br><span class="line">  tcache_entry *entries[TCACHE_MAX_BINS];</span><br><span class="line">&#125; tcache_perthread_struct;</span><br><span class="line"> </span><br><span class="line"><span class="meta"># <span class="keyword">define</span> TCACHE_MAX_BINS                64</span></span><br><span class="line"> </span><br><span class="line"><span class="type">static</span> __thread tcache_perthread_struct *tcache = <span class="literal">NULL</span>;</span><br></pre></td></tr></table></figure></div>
+
+<p>对应结构如下</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/9f4b7d5188884aa7b0862ec88e76a2d7.png"
+                      alt="图片描述"
+                ></p>
+<p>每个 thread 都会维护一个 <code>tcache_perthread_struct</code> ，它是整个 <code>tcache</code> 的管理结构，一共有 <code>TCACHE_MAX_BINS</code> 个计数器和 <code>TCACHE_MAX_BINS</code> 项 <code>tcache_entry</code>。这个结构在 <code>tcache_init</code> 函数中被初始化在堆上，大小为 0x250（高版本为 0x290）。其中数据部分前 0x40 为 <code>counts</code> ，剩下的为 <code>entries</code> 结构。如果能控制这个堆块就可以控制整个 <code>tcache</code> 。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">static</span> <span class="type">void</span></span><br><span class="line"><span class="title function_">tcache_init</span><span class="params">(<span class="type">void</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">  mstate ar_ptr;</span><br><span class="line">  <span class="type">void</span> *victim = <span class="number">0</span>;</span><br><span class="line">  <span class="type">const</span> <span class="type">size_t</span> bytes = <span class="keyword">sizeof</span> (tcache_perthread_struct);</span><br><span class="line"> </span><br><span class="line">  <span class="keyword">if</span> (tcache_shutting_down)</span><br><span class="line">    <span class="keyword">return</span>;</span><br><span class="line"> </span><br><span class="line">  arena_get (ar_ptr, bytes);</span><br><span class="line">  victim = _int_malloc (ar_ptr, bytes);</span><br><span class="line">  <span class="keyword">if</span> (!victim &amp;&amp; ar_ptr != <span class="literal">NULL</span>)</span><br><span class="line">    &#123;</span><br><span class="line">      ar_ptr = arena_get_retry (ar_ptr, bytes);</span><br><span class="line">      victim = _int_malloc (ar_ptr, bytes);</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line"> </span><br><span class="line">  <span class="keyword">if</span> (ar_ptr != <span class="literal">NULL</span>)</span><br><span class="line">    __libc_lock_unlock (ar_ptr-&gt;mutex);</span><br><span class="line"> </span><br><span class="line">  <span class="comment">/* In a low memory situation, we may not be able to allocate memory</span></span><br><span class="line"><span class="comment">     - in which case, we just keep trying later.  However, we</span></span><br><span class="line"><span class="comment">     typically do this very early, so either there is sufficient</span></span><br><span class="line"><span class="comment">     memory, or there isn&#x27;t enough memory to do non-trivial</span></span><br><span class="line"><span class="comment">     allocations anyway.  */</span></span><br><span class="line">  <span class="keyword">if</span> (victim)</span><br><span class="line">    &#123;</span><br><span class="line">      tcache = (tcache_perthread_struct *) victim;</span><br><span class="line">      <span class="built_in">memset</span> (tcache, <span class="number">0</span>, <span class="keyword">sizeof</span> (tcache_perthread_struct));</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></div>
+
+<p><code>tcache_perthread_struct</code> 中的 <code>tcache_entry</code> 用单向链表的方式链接了相同大小的处于空闲状态（<code>free</code> 后）的 <code>chunk</code>，这一点上和 fast bin 很像。</p>
+<p>另外与 fast bin 相同的是释放进入 <code>tcache</code> 的 <code>chunk</code> 的下一个相邻 <code>chunk</code> 的 <code>PREV_INUSE</code> 位不清零。</p>
+<p><code>counts</code> 记录了 <code>tcache_entry</code> 链上空闲 <code>chunk</code> 的数目，每条链上最多可以有 7 个 <code>chunk</code> 。注意指针指向的位置是 <code>fd</code> 指针，这一点与 fast bin 不同。<br>结构如下：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/85bcbf09c0cd42ca815696e8b4021bef.png"
+                      alt="图片描述"
+                ></p>
+<p>stash 机制：<br>当申请的大小在 <code>tcache</code> 范围的 <code>chunk</code> 在 <code>tcache</code> 中没有，此时 ptmalloc 会在其他 <code>bin</code> 里面找，如果找到了会将该 <code>chunk</code> 放到 <code>tcache</code> 中，直到 <code>tcache</code> 填满，最后直接返回找到的 <code>chunk</code> 或是从 <code>tcache</code> 中取出并返回。</p>
+<p>安全检查：</p>
+<ul>
+<li><p>tcache key（only libc2.29 and up）：自 glibc2.29 版本起 <code>tcache</code> 新增了一个 key 字段，该字段位于 <code>chunk</code> 的 bk 字段，值为 <code>tcache</code> 结构体的地址，若 <code>free()</code> 检测到 <code>chunk-&gt;bk == tcache</code> 则会遍历 <code>tcache</code> 查找对应链表中是否有该 <code>chunk</code><br>最新版本的一些老 glibc （如新版2.27等）也引入了该防护机制</p>
+</li>
+<li><p>Safe linking 机制（only glibc2.32 and up）：与 fast bin 类似。</p>
+<p>绕过方法：</p>
+<ul>
+<li>在 <code>tcache</code> 的一个 <code>entry</code> 中放入第一个 <code>chunk</code> 时，其同样会对该 <code>entry</code> 中的 “<code>chunk</code>” （NULL）进行异或运算后写入到将放入 <code>tcache</code> 中的 <code>chunk</code> 的 <code>fd</code> 字段，若是我们能够打印该 free chunk 的 <code>fd</code> 字段，便能够直接获得未经异或运算的堆上相关地址（右移 12 位）</li>
+<li>在 <code>tcache-&gt;entry</code> 中存放的仍是未经加密过的地址，若是我们能够控制 <code>tcache</code> 管理器则仍可以在不知道堆相关地址时进行任意地址写。</li>
+</ul>
+</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>Title:</strong> 堆相关数据结构</li>
+        <li><strong>Author:</strong> Chiu</li>
+        <li><strong>Created at
+                :</strong> 2024-07-31 14:01:08</li>
+        
+            <li>
+                <strong>Updated at
+                    :</strong> 2024-07-31 14:01:53
+            </li>
+        
+        <li>
+            <strong>Link:</strong> https://github.com/Idealist17/github.io/2024/07/31/堆相关数据结构/
+        </li>
+        <li>
+            <strong>
+                License:
+            </strong>
+            
+
+            
+                This work is licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a>.
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/PWN/">#PWN</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Heap/">#Heap</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2024/07/31/Fastbin-attack/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Fastbin attack</span>
+						<span class="post-nav-item">Prev posts</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2024/07/31/%E5%A0%86%E5%9F%BA%E6%9C%AC%E6%A6%82%E5%BF%B5/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">堆基本概念</span>
+						<span class="post-nav-item">Next posts</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        Comments
+    </div>
+    
+
+        
+            
+    <div id="gitalk-container"></div>
+    <script data-swup-reload-script
+            src="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js"></script>
+    <script data-swup-reload-script>
+
+        function loadGitalk() {
+            let __gitalk__pathname = decodeURI(location.pathname);
+            const __gitalk__pathnameLength = __gitalk__pathname.length;
+            const __gitalk__pathnameMaxLength = 50;
+            if (__gitalk__pathnameLength > __gitalk__pathnameMaxLength) {
+                __gitalk__pathname = __gitalk__pathname.substring(0, __gitalk__pathnameMaxLength - 3) + '...';
+            }
+
+            try {
+                Gitalk && new Gitalk({
+                    clientID: 'Ov23ctdJf8fChgcHijWU',
+                    clientSecret: 'ab085da53c1e5d5699612cc1a17d05a64daa0e25',
+                    repo: 'https://github.com/Idealist17/gitalk',
+                    owner: 'idealist17',
+                    admin: ['idealist17'],
+                    id: __gitalk__pathname,
+                    language: 'en',
+                    proxy: 'https://github.com/login/oauth/access_token'
+                }).render('gitalk-container');
+
+            } catch (e) {
+                window.Gitalk = null;
+            }
+        }
+
+        if ('true') {
+            const loadGitalkTimeout = setTimeout(() => {
+                loadGitalk();
+                clearTimeout(loadGitalkTimeout);
+            }, 1000);
+        } else {
+            window.addEventListener('DOMContentLoaded', loadGitalk);
+        }
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">On this page</div>
+		<div class="page-title">堆相关数据结构</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#malloc-par"><span class="nav-text">malloc_par</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#heap-info"><span class="nav-text">heap_info</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#arena"><span class="nav-text">arena</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#chunk"><span class="nav-text">chunk</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#bins"><span class="nav-text">bins</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A6%82%E8%BF%B0"><span class="nav-text">概述</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Fast-Bin"><span class="nav-text">Fast Bin</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Small-Bin"><span class="nav-text">Small Bin</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Large-Bin"><span class="nav-text">Large Bin</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Unsorted-Bin"><span class="nav-text">Unsorted Bin</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Top-Chunk"><span class="nav-text">Top Chunk</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#last-remainder"><span class="nav-text">last remainder</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#tcache"><span class="nav-text">tcache</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2024</span>
+              -
+            
+            2025&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">Chiu</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        35 posts in total
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+            <script data-swup-reload-script src="https://cn.vercount.one/js"></script>
+            <div class="relative text-center lg:absolute lg:right-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-right">
+                
+                    <span id="busuanzi_container_site_uv" class="lg:!block">
+                        <span class="text-sm">VISITOR COUNT</span>
+                        <span id="busuanzi_value_site_uv"></span>
+                    </span>
+                
+                
+                    <span id="busuanzi_container_site_pv" class="lg:!block">
+                        <span class="text-sm">TOTAL PAGE VIEWS</span>
+                        <span id="busuanzi_value_site_pv"></span>
+                    </span>
+                
+            </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">POWERED BY <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a></span>
+            <span class="text-sm lg:block">THEME&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.8.4</a></span>
+        </div>
+        
+        
+            <div>
+                Blog up for <span class="odometer" id="runtime_days" ></span> days <span class="odometer" id="runtime_hours"></span> hrs <span class="odometer" id="runtime_minutes"></span> Min <span class="odometer" id="runtime_seconds"></span> Sec
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container">
+	<img src="">
+</div>
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Search..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    const swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+</script>
+
+
+
+
+	
+<script src="/js/build/tools/imageViewer.js" type="module"></script>
+
+<script src="/js/build/utils.js" type="module"></script>
+
+<script src="/js/build/main.js" type="module"></script>
+
+<script src="/js/build/layouts/navbarShrink.js" type="module"></script>
+
+<script src="/js/build/tools/scrollTopBottom.js" type="module"></script>
+
+<script src="/js/build/tools/lightDarkSwitch.js" type="module"></script>
+
+<script src="/js/build/layouts/categoryList.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/tools/localSearch.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/codeBlock.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/layouts/lazyload.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/runtime.js"></script>
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+  
+<script src="/js/build/plugins/typed.js" type="module"></script>
+
+
+
+
+
+
+    
+<script src="/js/build/libs/minimasonry.min.js"></script>
+
+    
+<script src="/js/build/plugins/masonry.js" type="module"></script>
+
+
+
+
+
+
+
+    
+<script src="/js/build/tools/tocToggle.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/layouts/toc.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/plugins/tabs.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+<script src="/js/build/layouts/essays.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+
+	
+</body>
+
+</html>

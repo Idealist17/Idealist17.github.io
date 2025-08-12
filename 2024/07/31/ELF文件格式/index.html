@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Hexo Theme Redefine">
+    
+    <meta name="author" content="Chiu">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set data attribute for CSS variables
+                root.setAttribute("data-theme", theme);
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes once DOM is ready
+            if (document.readyState !== "loading") {
+                document.body.classList.add(theme + "-mode");
+            } else {
+                document.addEventListener("DOMContentLoaded", () => {
+                    document.body.classList.add(theme + "-mode");
+                    document.body.classList.remove((theme === DARK ? LIGHT : DARK) + "-mode");
+                });
+            }
+        })();
+    </script>
+    
+    <!-- Critical CSS to prevent flash -->
+    <style>
+        :root[data-theme="dark"] {
+            --background-color: #202124;
+            --background-color-transparent: rgba(32, 33, 36, 0.6);
+            --second-background-color: #2d2e32;
+            --third-background-color: #34353a;
+            --third-background-color-transparent: rgba(32, 33, 36, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #ffffff;
+            --second-text-color: #eeeeee;
+            --third-text-color: #bebec6;
+            --fourth-text-color: #999999;
+            --default-text-color: #bebec6;
+            --invert-text-color: #373D3F;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(255, 255, 255, 0.08);
+            --shadow-color-2: rgba(255, 255, 255, 0.05);
+        }
+        
+        :root[data-theme="light"] {
+            --background-color: #fff;
+            --background-color-transparent: rgba(255, 255, 255, 0.6);
+            --second-background-color: #f8f8f8;
+            --third-background-color: #f2f2f2;
+            --third-background-color-transparent: rgba(241, 241, 241, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #16171a;
+            --second-text-color: #2f3037;
+            --third-text-color: #5e5e5e;
+            --fourth-text-color: #eeeeee;
+            --default-text-color: #373D3F;
+            --invert-text-color: #bebec6;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(0, 0, 0, 0.08);
+            --shadow-color-2: rgba(0, 0, 0, 0.05);
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+        
+        /* Apply body classes as soon as DOM is ready */
+        :root[data-theme="dark"] body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+    </style>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="http://example.com/2024/07/31/elf文件格式/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+    
+        
+        <meta name="description" content="ELF（Executable and Linkable Format）是一种常见的可执行文件和可链接文件格式，主要用于Linux和类Unix系统。ELF 文件可以包含不同的类型，常见的 ELF 文件类型包括：  可执行文件（ET_EXEC）：这种类型的 ELF 文件是可直接执行的程序，可以在操作系统上运行。 共享目标文件（ET_DYN）：这种类型的 ELF 文件是可被动态链接的共享库，可以在运行时">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ELF文件格式">
+<meta property="og:url" content="http://example.com/2024/07/31/ELF%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="ELF（Executable and Linkable Format）是一种常见的可执行文件和可链接文件格式，主要用于Linux和类Unix系统。ELF 文件可以包含不同的类型，常见的 ELF 文件类型包括：  可执行文件（ET_EXEC）：这种类型的 ELF 文件是可直接执行的程序，可以在操作系统上运行。 共享目标文件（ET_DYN）：这种类型的 ELF 文件是可被动态链接的共享库，可以在运行时">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312222349_SJCSBETWFZ8HK3U.webp">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312251148_QD98Q6DR7N6K2C7.webp">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312251150_AA7M3FSC4TQ89FK.webp">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312251148_53F9V52TG4AYGGY.webp">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312251149_3B8Z27QHAV8FS57.webp">
+<meta property="article:published_time" content="2024-07-31T05:42:16.000Z">
+<meta property="article:modified_time" content="2024-07-31T05:43:17.240Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="PWN">
+<meta property="article:tag" content="Linux">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312222349_SJCSBETWFZ8HK3U.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            ELF文件格式 | Chiu&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+        
+<script src="/js/build/libs/anime.min.js"></script>
+
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"example.com","root":"/","language":"en"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":null,"default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":true,"site_pv":true,"site_uv":true,"post_pv":true},"single_page":true,"preloader":true,"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":true,"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Input | Think | Output","subtitle":{"text":["How you spend every day is how you spend your life"],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"default","links":{"github":"https://github.com/Idealist17","instagram":null,"zhihu":null,"twitter":null,"email":"ChiuFangxi@gmail.com"},"qrs":{"weixin":null}}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"9.3.0"}},"version":"2.8.4","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Gallery":{"icon":"fa-solid fa-image","path":"/masonry/"},"About":{"icon":"fa-regular fa-user","submenus":{"Me":"/about","Friends":"/friends"}}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur"},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":"Input | Think | Output","show_on_mobile":true,"links":{"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footerStart":"2024/7/30 14:00:00"};
+    window.lang_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+    window.data = {"masonry":true};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<style>
+    :root {
+        --preloader-background-color: #fff;
+        --preloader-text-color: #000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --preloader-background-color: #202124;
+            --preloader-text-color: #fff;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --preloader-background-color: #fff;
+            --preloader-text-color: #000;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .ml13 {
+            font-size: 2.6rem !important; /* Adjust this value as needed */
+        }
+    }
+
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem; /* Tailwind 'gap-4' is 1rem */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        padding: 12px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh; /* 'h-screen' is 100% of the viewport height */
+        background-color: var(--preloader-background-color);
+        z-index: 1100; /* 'z-[1100]' sets the z-index */
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .ml13 {
+        font-size: 3.2rem;
+        /* text-transform: uppercase; */
+        color: var(--preloader-text-color);
+        letter-spacing: -1px;
+        font-weight: 500;
+        font-family: 'Chillax-Variable', sans-serif;
+        text-align: center;
+    }
+
+    .ml13 .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .ml13 .letter {
+        display: inline-block;
+        line-height: 1em;
+    }
+</style>
+
+<div class="preloader">
+    <h2 class="ml13">
+        Chiu&#39;s Blog
+    </h2>
+    <script>
+        var textWrapper = document.querySelector('.ml13');
+        // Split text into words
+        var words = textWrapper.textContent.trim().split(' ');
+
+        // Clear the existing content
+        textWrapper.innerHTML = '';
+
+        // Wrap each word and its letters in spans
+        words.forEach(function(word) {
+            var wordSpan = document.createElement('span');
+            wordSpan.classList.add('word');
+            wordSpan.innerHTML = word.replace(/\S/g, "<span class='letter'>$&</span>");
+            textWrapper.appendChild(wordSpan);
+            textWrapper.appendChild(document.createTextNode(' ')); // Add space between words
+        });
+
+        var animation = anime.timeline({ loop: true })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [20, 0],
+                translateZ: 0,
+                opacity: [0, 1],
+                filter: ['blur(5px)', 'blur(0px)'],
+                easing: "easeOutExpo",
+                duration: 1200,
+                delay: (el, i) => 300 + 20 * i,
+            })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [0, -20],
+                opacity: [1, 0],
+                filter: ['blur(0px)', 'blur(5px)'],
+                easing: "easeInExpo",
+                duration: 1000,
+                delay: (el, i) => 15 * i,
+                complete: function() {
+                    hidePreloader();
+                }
+            }, '-=700');
+
+
+        let themeStatus = JSON.parse(localStorage.getItem('REDEFINE-THEME-STATUS'))?.isDark;
+
+        // If the theme status is not found in local storage, check the preferred color scheme
+        if (themeStatus === undefined || themeStatus === null) {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                themeStatus = 'dark';
+            } else {
+                themeStatus = 'light';
+            }
+        }
+
+        // Now you can use the themeStatus variable in your code
+        if (themeStatus) {
+            document.documentElement.style.setProperty('--preloader-background-color', '#202124');
+            document.documentElement.style.setProperty('--preloader-text-color', '#fff');
+        } else {
+            document.documentElement.style.setProperty('--preloader-background-color', '#fff');
+            document.documentElement.style.setProperty('--preloader-text-color', '#000');
+        }
+
+        window.addEventListener('load', function () {
+            setTimeout(hidePreloader, 5000); // Call hidePreloader after 5000 milliseconds if not already called by animation
+        });
+
+        function hidePreloader() {
+            var preloader = document.querySelector('.preloader');
+            preloader.style.opacity = '0';
+            setTimeout(function () {
+                preloader.style.display = 'none';
+            }, 200);
+        }
+    </script>
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Chiu&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    HOME
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    ARCHIVES
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/masonry/"
+                                        >
+                                    <i class="fa-solid fa-image fa-fw"></i>
+                                    GALLERY
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="has-dropdown"
+                                   href="#"
+                                        onClick=&#34;return false;&#34;>
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    ABOUT
+                                    <i class="fa-solid fa-chevron-down fa-fw"></i>
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                                    <ul class="sub-menu">
+                                        
+                                            <li>
+                                                <a href="/about">
+                                                    ME
+                                                </a>
+                                            </li>
+                                        
+                                            <li>
+                                                <a href="/friends">
+                                                    FRIENDS
+                                                </a>
+                                            </li>
+                                        
+                                    </ul>
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                HOME
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                ARCHIVES
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/masonry/"
+                        >
+                            <span>
+                                GALLERY
+                            </span>
+                            
+                                <i class="fa-solid fa-image fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item-sub text-base my-1.5 flex flex-col w-full">
+                        
+                        <div class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary cursor-pointer text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                             navbar-data-toggle="submenu-About"
+                        >
+                            <span>
+                                ABOUT
+                            </span>
+                            
+                                <i class="fa-solid fa-chevron-right fa-sm fa-fw transition-all"></i>
+                            
+                        </div>
+                        
+
+                        
+                            <div class="flex-col items-start px-2 py-2 hidden" data-target="submenu-About">
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/about">ME</a>
+                                    </div>
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/friends">FRIENDS</a>
+                                    </div>
+                                
+                            </div>
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>Tags</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">22</div>
+        <div class="label text-third-text-color text-sm">Tags</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Categories</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">35</div>
+        <div class="label text-third-text-color text-sm">Posts</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">ELF文件格式</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] flex-shrink-0 rounded-medium border border-border-color p-[1px]">
+				<img src="/images/redefine-avatar.svg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Chiu</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2024-07-31 13:42:16</span>
+        <span class="mobile">2024-07-31 13:42:16</span>
+        <span class="hover-info">Created</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2024-07-31 13:43:17</span>
+            <span class="mobile">2024-07-31 13:43:17</span>
+            <span class="hover-info">Updated</span>
+        </span>
+    
+
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/PWN/">PWN</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Linux/">Linux</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fa-regular fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>ELF（Executable and Linkable Format）是一种常见的可执行文件和可链接文件格式，主要用于Linux和类Unix系统。ELF 文件可以包含不同的类型，常见的 ELF 文件类型包括：</p>
+<ul>
+<li>可执行文件（<code>ET_EXEC</code>）：这种类型的 ELF 文件是可直接执行的程序，可以在操作系统上运行。</li>
+<li>共享目标文件（<code>ET_DYN</code>）：这种类型的 ELF 文件是可被动态链接的共享库，可以在运行时与其他程序动态链接。该类型文件后缀名为 <code>.so</code> 。</li>
+<li>可重定位文件（<code>ET_REL</code>）：这种类型的 ELF 文件是编译器生成的目标文件，通常用于将多个目标文件链接到一个可执行文件或共享库中。该类型文件后缀名为 <code>.o</code> ，静态链接库（<code>.a</code>）也可以归为这一类。</li>
+<li>核心转储文件（<code>ET_CORE</code>）：这种类型的 ELF 文件是操作系统在程序崩溃或发生错误时生成的核心转储文件，用于调试和分析程序崩溃的原因。</li>
+</ul>
+<p>ELF 文件结构及相关常数被定义在 <code>/usr/include/elf.h</code> 里，因为 ELF 文件在各种平台下都通用，ELF文件有 32 位版本和 64 位版本。32 位版本与 64 位版本的 ELF 文件的格式基本是一样的（部分结构体为了优化对齐后大小调整了成员的顺序），只不过有些成员的大小不一样。</p>
+<p><code>elf.h</code> 使用 typedef 定义了一套自己的变量体系：</p>
+<table>
+<thead>
+<tr>
+<th>自定义类型</th>
+<th>描述</th>
+<th>原始类型</th>
+<th>长度（字节）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Elf32_Addr</code></td>
+<td>32 位版本程序地址</td>
+<td><code>uint32_t</code></td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>Elf32_Half</code></td>
+<td>32 位版本的无符号短整型</td>
+<td><code>uint16_t</code></td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>Elf32_Off</code></td>
+<td>32 位版本的偏移地址</td>
+<td><code>uint32_t</code></td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>Elf32_Sword</code></td>
+<td>32 位版本有符号整型</td>
+<td><code>uint32_t</code></td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>Elf32_Word</code></td>
+<td>32 位版本无符号整型</td>
+<td><code>int32_t</code></td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>Elf64_Addr</code></td>
+<td>64 位版本程序地址</td>
+<td><code>uint64_t</code></td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>Elf64_Half</code></td>
+<td>64 位版本的无符号短整型</td>
+<td><code>uint16_t</code></td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>Elf64_Off</code></td>
+<td>64 位版本的偏移地址</td>
+<td><code>uint64_t</code></td>
+<td>8</td>
+</tr>
+<tr>
+<td><code>Elf64_Sword</code></td>
+<td>64 位版本有符号整型</td>
+<td><code>uint32_t</code></td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>Elf64_Word</code></td>
+<td>64 位版本无符号整型</td>
+<td><code>int32_t</code></td>
+<td>4</td>
+</tr>
+</tbody></table>
+<p>ELF 主要管理结构为文件头，程序头表（可重定位文件没有）和节表，其他部分有一个个节组成，多个属性相同的节构成一个段。对于节的介绍这里按照静态链接相关和动态链接相关分别介绍。<img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312222349_SJCSBETWFZ8HK3U.webp"
+                      alt="图片描述"
+                ></p>
+<h2 id="文件头"><a href="#文件头" class="headerlink" title="文件头"></a>文件头</h2><p>我们这里以 32 位版本的文件头结构 <code>Elf32_Ehdr</code> 作为例子来描述，它的定义如下：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* The ELF file header.  This appears at the start of every ELF file.  */</span></span><br><span class="line"> </span><br><span class="line"><span class="meta">#<span class="keyword">define</span> EI_NIDENT (16)</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">char</span> e_ident[EI_NIDENT]; <span class="comment">/* Magic number and other info */</span></span><br><span class="line">  Elf32_Half    e_type;         <span class="comment">/* Object file type */</span></span><br><span class="line">  Elf32_Half    e_machine;      <span class="comment">/* Architecture */</span></span><br><span class="line">  Elf32_Word    e_version;      <span class="comment">/* Object file version */</span></span><br><span class="line">  Elf32_Addr    e_entry;        <span class="comment">/* Entry point virtual address */</span></span><br><span class="line">  Elf32_Off e_phoff;        <span class="comment">/* Program header table file offset */</span></span><br><span class="line">  Elf32_Off e_shoff;        <span class="comment">/* Section header table file offset */</span></span><br><span class="line">  Elf32_Word    e_flags;        <span class="comment">/* Processor-specific flags */</span></span><br><span class="line">  Elf32_Half    e_ehsize;       <span class="comment">/* ELF header size in bytes */</span></span><br><span class="line">  Elf32_Half    e_phentsize;        <span class="comment">/* Program header table entry size */</span></span><br><span class="line">  Elf32_Half    e_phnum;        <span class="comment">/* Program header table entry count */</span></span><br><span class="line">  Elf32_Half    e_shentsize;        <span class="comment">/* Section header table entry size */</span></span><br><span class="line">  Elf32_Half    e_shnum;        <span class="comment">/* Section header table entry count */</span></span><br><span class="line">  Elf32_Half    e_shstrndx;     <span class="comment">/* Section header string table index */</span></span><br><span class="line">&#125; Elf32_Ehdr;</span><br></pre></td></tr></table></figure></div>
+
+<ul>
+<li><code>e_ident</code>：ELF 文件的魔数和其他信息。<ul>
+<li>前 4 字节为 <code>ELFMAG</code> 即 <code>x7fELF</code> 。</li>
+<li>第 5 字节为 ELF 文件类型，值为 <code>ELFCLASS32(1)</code> 代表 32 位，值为 <code>ELFCLASS64(2)</code> 代表 64 位。</li>
+<li>第 6 字节为 ELF 的字节序，0 为无效格式，1 为小端格式，2 为大端格式。</li>
+<li>第 7 字节为 ELF 版本，一般为 1 ，即 1.2 版本。</li>
+<li>后面 9 字节没有定义一般填 0 ，有些平台会使用这 9 个字节作为扩展标志。</li>
+</ul>
+</li>
+<li><strong><code>e_type</code>：表示ELF文件类型，如可执行文件、共享对象文件（<code>.so</code>）、可重定位文件（<code>.o</code>）等。</strong></li>
+<li><code>e_machine</code>：表示目标体系结构，即程序的目标平台，如 x86、ARM 等。相关常量以 <code>EM_</code> 开头。</li>
+<li><code>e_version</code>：ELF 文件版本号，一般为常数 1 。</li>
+<li><strong><code>e_entry</code>：表示程序入口点虚拟地址。操作系统加载完程序后从这个地址开始执行进程的命令。可重定位文件一般没有入口地址，则这个值为 0 。</strong></li>
+<li><strong><code>e_phoff</code>：表示程序头表的文件偏移量。</strong></li>
+<li><strong><code>e_shoff</code>：表示节表的文件偏移量。</strong></li>
+<li><code>e_flags</code>：表示处理器特定标志。</li>
+<li><strong><code>e_ehsize</code>：表示 ELF 文件头的大小。</strong></li>
+<li><strong><code>e_phentsize</code>：表示程序头表中每个表项的大小。</strong></li>
+<li><strong><code>e_phnum</code>：表示程序头表中表项的数量。</strong></li>
+<li><strong><code>e_shentsize</code>：表示节表中每个表项的大小。</strong></li>
+<li><strong><code>e_shnum</code>：表示节表中表项的数量。</strong></li>
+<li><code>e_shstrndx</code>：<strong>表示节表中字符串表的索引。</strong></li>
+</ul>
+<h2 id="程序头表"><a href="#程序头表" class="headerlink" title="程序头表"></a>程序头表</h2><p>ELF 可执行文件中有一个专门的数据结构叫做程序头表（Program Header Table）用来保存<strong>段</strong>（<strong>注意不是节</strong>）的信息。因为 ELF <strong>目标文件</strong>不需要被装载，所以它没有程序头表，而 ELF 的<strong>可执行文件</strong>和<strong>共享库文件</strong>都有程序头表。</p>
+<p>程序头表是由 <code>Elf*_Phdr</code> 组成的数组，用于描述 ELF 文件中每个节的属性和信息。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Program segment header.  */</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Word    p_type;         <span class="comment">/* Segment type */</span></span><br><span class="line">  Elf32_Off p_offset;       <span class="comment">/* Segment file offset */</span></span><br><span class="line">  Elf32_Addr    p_vaddr;        <span class="comment">/* Segment virtual address */</span></span><br><span class="line">  Elf32_Addr    p_paddr;        <span class="comment">/* Segment physical address */</span></span><br><span class="line">  Elf32_Word    p_filesz;       <span class="comment">/* Segment size in file */</span></span><br><span class="line">  Elf32_Word    p_memsz;        <span class="comment">/* Segment size in memory */</span></span><br><span class="line">  Elf32_Word    p_flags;        <span class="comment">/* Segment flags */</span></span><br><span class="line">  Elf32_Word    p_align;        <span class="comment">/* Segment alignment */</span></span><br><span class="line">&#125; Elf32_Phdr;</span><br></pre></td></tr></table></figure></div>
+
+<ul>
+<li><code>p_type</code>：段的类型，例如可执行段、数据段等。</li>
+<li><code>p_offset</code>：段在文件中的偏移量。</li>
+<li><code>p_vaddr</code>：段在虚拟内存中的起始地址。</li>
+<li><code>p_paddr</code>：段在物理内存中的起始地址。因为 ELF 还没装载不知道物理地址，所以作为保留字段。通常和 <code>p_vaddr</code> 的值是一样的。</li>
+<li><code>p_filesz</code>：段在文件中的大小。</li>
+<li><code>p_memsz</code>：段在内存中的大小。</li>
+<li><code>p_flags</code>：段的标志，例如可读、可写、可执行等。</li>
+<li><code>p_align</code>：段在文件和内存中的对齐方式。段的的加载地址要能被 2�<em>�����2<em>p</em></em><em>a<strong>l</strong>i<strong>g</strong>n</em> 整除。</li>
+</ul>
+<h2 id="表"><a href="#表" class="headerlink" title="表"></a>表</h2><p>ELF文件里面定义一个固定长度的 <code>Elf*_Shdr</code> 结构体数组用来存放<strong>节</strong>相关信息，与 PE 文件的节表相似。</p>
+<blockquote>
+<p>在 ELF 文件中，<strong>段</strong>（Segment）和<strong>节</strong>（Section）是两个不同的概念，它们在文件结构中具有不同的作用和目的。</p>
+<p>段（Segment）是一种逻辑上的组织单位，它定义了可执行文件或共享库在内存中的一个连续区域。每个段都有自己的虚拟地址空间，可以包含多个节。常见的段类型包括代码段（<code>.text</code>），数据段（<code>.data</code>、<code>.bss</code>），只读数据段（<code>.rodata</code>）等。段在加载和执行时被操作系统用来管理内存，设置内存保护属性以及指定虚拟地址空间的起始地址和大小。</p>
+<p>节（Section）是一种更细粒度的组织单位，它包含了文件中的特定类型的数据或代码。每个节都有自己的名字、类型和内容。常见的节类型包括代码节（<code>.text</code>），数据节（<code>.data</code>、<code>.bss</code>），只读数据节（<code>.rodata</code>），符号表节（<code>.symtab</code>），字符串表节（<code>.strtab</code>）等。节不直接参与内存的加载和执行，而是用于链接器（Linker）和调试器（Debugger）等工具对文件进行处理和分析。</p>
+<p><strong>通俗的讲，在装载程序的时候为了节省内存会将 ELF 文件中属性相同的节（Section）合并成在一个段（Segment）加载到内存中。</strong></p>
+<p>段和节之间存在对应关系和映射关系：</p>
+<ul>
+<li>一个段可以包含多个节，这些节的内容和属性都属于该段。</li>
+<li>段提供了对应于虚拟内存的逻辑映射，而节则提供了对应于文件的逻辑映射。</li>
+<li>段的加载和执行涉及内存管理和地址映射，而节则用于链接和调试过程中的符号解析、重定位等操作。</li>
+</ul>
+</blockquote>
+<p>其中 <code>Elf32_Shdr</code> 定义如下：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Section header.  */</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Word    sh_name;        <span class="comment">/* Section name (string tbl index) */</span></span><br><span class="line">  Elf32_Word    sh_type;        <span class="comment">/* Section type */</span></span><br><span class="line">  Elf32_Word    sh_flags;       <span class="comment">/* Section flags */</span></span><br><span class="line">  Elf32_Addr    sh_addr;        <span class="comment">/* Section virtual addr at execution */</span></span><br><span class="line">  Elf32_Off sh_offset;      <span class="comment">/* Section file offset */</span></span><br><span class="line">  Elf32_Word    sh_size;        <span class="comment">/* Section size in bytes */</span></span><br><span class="line">  Elf32_Word    sh_link;        <span class="comment">/* Link to another section */</span></span><br><span class="line">  Elf32_Word    sh_info;        <span class="comment">/* Additional section information */</span></span><br><span class="line">  Elf32_Word    sh_addralign;       <span class="comment">/* Section alignment */</span></span><br><span class="line">  Elf32_Word    sh_entsize;     <span class="comment">/* Entry size if section holds table */</span></span><br><span class="line">&#125; Elf32_Shdr;</span><br></pre></td></tr></table></figure></div>
+
+<ul>
+<li><p><strong><code>sh_name</code>：表示节的名称在字符串表中的索引。字符串表节存储了所有节的名称，<code>sh_name</code> 指定了节的名称在字符串表中的位置。</strong></p>
+</li>
+<li><p><strong><code>sh_type</code>：表示节的类型，指定了节的用途和属性。常见的类型包括代码段（<code>SHT_PROGBITS(1)</code>）、数据段（<code>SHT_PROGBITS(1)</code>）、符号表（<code>SHT_SYMTAB(2)</code>）、字符串表（<code>SHT_STRTAB(3)</code>）等。</strong></p>
+</li>
+<li><p><code>sh_flags</code>：表示节的标志，用于描述节的特性和属性。标志的具体含义取决于节的类型和上下文。</p>
+</li>
+<li><p><strong><code>sh_addr</code>：表示节的虚拟地址，只在可执行文件中有意义。对于可执行文件，<code>sh_addr</code> 指定了节在内存中的加载地址，如果该节不可被加载，则该值为 0 。</strong></p>
+</li>
+<li><p><strong><code>sh_offset</code>：表示节在文件中的偏移量，指定了节在文件中的位置。对于 bss 段来说该值没有意义。</strong></p>
+</li>
+<li><p><strong><code>sh_size</code>：表示节的大小，指定了节所占据的字节数。</strong></p>
+</li>
+<li><p><code>sh_link</code>：表示链接到的其他节的索引，用于建立节之间的关联关系，具体含义依赖于节的类型。</p>
+</li>
+<li><p><code>sh_info</code>：附加信息，具体含义依赖于节的类型。</p>
+</li>
+<li><p><code>sh_addralign</code>：表示节的地址对齐要求，指定了节在内存中的对齐方式。即 <code>sh_addr</code> 需要满足<br>$$<br>sh_addr \bmod 2^{\text{sh_addralign}}<br>$$<br>​	如果 <code>sh_addralign</code> 为 0 或 1 表示该段没有对齐要求。</p>
+</li>
+<li><p><strong><code>sh_entsize</code>：表示节中每个项的大小，如果该字段为 0 说明节中不包含固定大小的项。</strong></p>
+</li>
+</ul>
+<p>ELF 中常见的节如下：</p>
+<ul>
+<li><code>.text</code>：代码段（Code Section），用于存储程序的可执行指令。</li>
+<li><code>.rodata</code>：只读数据段（Read-Only Data Section），用于存储只读的常量数据，例如字符串常量。</li>
+<li><code>.data</code>：数据段（Data Section），用于存储已初始化的全局变量和静态变量。</li>
+<li><code>.bss</code>：未初始化的数据段（Block Started by Symbol），用于存储未初始化的全局变量和静态变量。它不占用实际的文件空间，而是在运行时由系统自动初始化为零。</li>
+<li><code>.symtab</code>：符号表节（Symbol Table Section），用于存储程序的符号表信息，包括函数、变量和其他符号的名称、类型和地址等。</li>
+<li><code>.strtab</code>：字符串表节（String Table Section），用于存储字符串数据，如节名称、符号名称等。字符串表节被多个其他节引用，通过偏移量和索引来访问具体的字符串。</li>
+<li><code>.rel.text</code> 或 <code>.rela.text</code>：代码重定位节（Relocation Section），用于存储代码段中的重定位信息，以便在链接时修正代码中的符号引用。</li>
+<li><code>.rel.data</code> 或 <code>.rela.data</code>：数据重定位节（Relocation Section），用于存储数据段中的重定位信息，以便在链接时修正数据段中的符号引用。</li>
+<li><code>.dynamic</code>：动态节（Dynamic Section），用于存储程序的动态链接信息，包括动态链接器需要的重定位表、共享对象的名称、版本信息等。</li>
+<li><code>.note</code>：注释节（Note Section），用于存储与程序或库相关的注释或调试信息。</li>
+</ul>
+<h2 id="静态链接相关"><a href="#静态链接相关" class="headerlink" title="静态链接相关"></a>静态链接相关</h2><p><strong>注意：静态链接相关只在可重定位文件中存在。比如可执行文件，如果不开启 PIE 加载地址固定，不需要对自身进行重定位，而开启 PIE 后为地址无关代码，也不需要对自身进行重定位。因此不需要静态链接也就丢弃了静态链接相关的节。</strong></p>
+<h3 id="符号表（-symtab）"><a href="#符号表（-symtab）" class="headerlink" title="符号表（.symtab）"></a>符号表（.symtab）</h3><p><strong>注意：符号表除了静态链接外没有用，但是程序为了方便调试会保留符号表，我们可以通过 <code>strip + 程序名</code> 的方式将符号表去除，这就是为什么有的 pwn 题的附件没有函数和变量名而有的却有。</strong></p>
+<p>ELF 文件中的符号表往往是文件中的一个段，段名一般叫 <code>.symtab</code> 。符号表是一个 <code>Elf*_Sym</code> 结构（32 位 ELF 文件）的数组，每个 <code>Elf*_Sym</code> 结构对应一个符号。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Symbol table entry.  */</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Word    st_name;        <span class="comment">/* Symbol name (string tbl index) */</span></span><br><span class="line">  Elf32_Addr    st_value;       <span class="comment">/* Symbol value */</span></span><br><span class="line">  Elf32_Word    st_size;        <span class="comment">/* Symbol size */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">char</span> st_info;        <span class="comment">/* Symbol type and binding */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">char</span> st_other;       <span class="comment">/* Symbol visibility */</span></span><br><span class="line">  Elf32_Section st_shndx;       <span class="comment">/* Section index */</span></span><br><span class="line">&#125; Elf32_Sym;</span><br></pre></td></tr></table></figure></div>
+
+<ul>
+<li><code>st_name</code>：符号名称在<strong>字符串</strong>表中的偏移量。</li>
+<li><code>st_value</code>：符号的值，即符号的地址或偏移量。<ul>
+<li>如果该符号在<strong>目标文件</strong>中，如果是符号的定义并且该符号不是 <code>COMMON</code> 块类型的则 <code>st_value</code> 表示该符号在段中的<strong>偏移</strong>。</li>
+<li>在<strong>目标文件</strong>中，如果符号是 <code>COMMON</code> 块类型的则 <code>st_value</code> 表示该符号的<strong>对齐属性</strong>。</li>
+<li>在<strong>可执行文件</strong>中，<code>st_value</code> 表示符号的<strong>虚拟地址</strong>。</li>
+</ul>
+</li>
+<li><code>st_size</code>：符号的大小，如果符号是一个函数，则表示函数的大小。如果该值为 0 表示符号的大小为 0 或未知。</li>
+<li><code>st_info</code>：该字段是一个字节，包含符号的类型和绑定信息。符号类型包括函数、数据、对象等，符号绑定包括局部符号、全局符号、弱符号等。该字段的高 4 位表示符号的类型，低 4 位表示符号的绑定信息。</li>
+<li><code>st_other</code>：保留字段，通常为 0 。</li>
+<li><code>st_shndx</code>：通常为符号所在<strong>节</strong>的索引。<ul>
+<li>如果符号是一个常量，该字段为 <code>SHN_ABS</code>（初始值不为 0 的全局变量） 或 <code>SHN_COMMON</code>（初始值为 0 的全局变量）。</li>
+<li>如果该符号未定义但是在该文件中被引用到，说明该符号可能定义在其他目标文件中，则该字段为 <code>SHN_UNDEF</code> 。</li>
+</ul>
+</li>
+</ul>
+<h3 id="重定位表（-rel-text-rel-data）"><a href="#重定位表（-rel-text-rel-data）" class="headerlink" title="重定位表（.rel.text&#x2F;.rel.data）"></a>重定位表（.rel.text&#x2F;.rel.data）</h3><p>重定位表是一个 <code>Elf*_Rel</code> 结构的数组，每个数组元素对应一个重定位入口。重定位表主要有<code>.rel.text</code> 或 <code>.rela.text</code>，即代码重定位节（Relocation Section）和 <code>.rel.data</code> 或 <code>.rela.data</code>：数据重定位节（Relocation Section）。</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/* Relocation table entry without addend (in section of type SHT_REL).  */</span></span><br><span class="line"> </span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  Elf32_Addr    r_offset;       <span class="comment">/* Address */</span></span><br><span class="line">  Elf32_Word    r_info;         <span class="comment">/* Relocation type and symbol index */</span></span><br><span class="line">&#125; Elf32_Rel;</span><br></pre></td></tr></table></figure></div>
+
+<ul>
+<li><pre><code>r_offset
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line">  ：需要进行重定位的位置的偏移量或地址。这个位置通常是指令中的某个操作数或数据的地址，需要在链接时进行修正，以便正确地引用目标符号。</span><br><span class="line"></span><br><span class="line">  - 对于可执行文件或共享库，`r_offset` 表示需要修改的位置在内存中的位置（用于动态链接）。</span><br><span class="line">  - 对于**可重定位文件**，`r_offset` 表示需要修改的位置相对于段起始位置的偏移（用于静态链接）。</span><br><span class="line"></span><br><span class="line">- `r_info`：低 8 位表示符号的重定位类型，重定位类型指定了进行何种类型的修正，例如绝对重定位、PC 相对重定位等。高 24 位表示该符号在**符号表**中的索引，用于解析重定位所引用的符号。</span><br><span class="line"></span><br><span class="line">### 字符串表（.strtab）</span><br><span class="line"></span><br><span class="line">ELF 文件中用到了很多字符串，比如段名、变量名等。因为字符串的长度往往是不定的，所以用固定的结构来表示它比较困难。一种很常见的做法是把字符串集中起来存放到一个表，然后使用字符串在表中的偏移来引用字符串。</span><br><span class="line"></span><br><span class="line">通过这种方法，在ELF文件中引用字符串只须给出一个数字下标即可，不用考虑字符串长度的问题。一般字符串表在ELF文件中也以段的形式保存，常见的段名为“`.strtab`”或“`.shstrtab`”。这两个字符串表分别为字符串表（String Table）和段表字符串表（Section Header String Table）。顾名思义，字符串表用来保存普通的字符串，比如符号的名字；段表字符串表用来保存段表中用到的字符串，最常见的就是段名（`sh_name` ）。</span><br><span class="line"></span><br><span class="line">注意，在字符串表中的每个字符串的**开头**和**结尾**都有一个 `x00` 填充。</span><br><span class="line"></span><br><span class="line">## 动态链接相关</span><br><span class="line"></span><br><span class="line">![图片描述](https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312222350_M5UHSN8QQKV3NGG.webp)</span><br><span class="line"></span><br><span class="line">### .interp 段</span><br><span class="line"></span><br><span class="line">在动态链接的 ELF 可执行文件中，有一个专门的段叫做 `.interp` 段（“interp”是“interpreter”（解释器）的缩写）。</span><br><span class="line"></span><br><span class="line">`.interp` 的内容很简单，里面保存的就是一个字符串 `/lib64/ld-linux-x86-64.so.2` ，这个字符串就是可执行文件所需要的动态链接器的路径。</span><br><span class="line"></span><br><span class="line">通常系统通过判断一个 ELF 程序是否有 `.interp` 来判断该 ELF 文件是否为动态链接程序。</span><br><span class="line"></span><br><span class="line">### .dynamic 段</span><br><span class="line"></span><br><span class="line">动态链接 ELF 中最重要的结构是 `.dynamic` 段，这个段里面保存了动态链接器所需要的基本信息，比如依赖于哪些共享对象、动态链接符号表的位置、动态链接重定位表的位置、共享对象初始化代码的地址等。`.dynamic` 段是由`Elf*_Dyn` 构成的结构体数组。</span><br><span class="line"></span><br><span class="line">```c</span><br><span class="line">/* Dynamic section entry.  */</span><br><span class="line"> </span><br><span class="line">typedef struct</span><br><span class="line">&#123;</span><br><span class="line">  Elf32_Sword   d_tag;          /* Dynamic entry type */</span><br><span class="line">  union</span><br><span class="line">    &#123;</span><br><span class="line">      Elf32_Word d_val;         /* Integer value */</span><br><span class="line">      Elf32_Addr d_ptr;         /* Address value */</span><br><span class="line">    &#125; d_un;</span><br><span class="line">&#125; Elf32_Dyn;</span><br></pre></td></tr></table></figure></div>
+</code></pre>
+</li>
+</ul>
+<p><code>Elf32_Dyn</code> 结构由一个类型值加上一个附加的数值或指针，对于不同的类型，后面附加的数值或者指针有着不同的含义。我们这里列举几个比较常见的类型值（这些值都是定义在 <code>elf.h</code> 里面的宏），</p>
+<ul>
+<li><code>DT_SYMTAB</code>：指定了符号表的地址，<code>d_ptr</code> 表示 <code>.dynsym</code> 的地址。</li>
+<li><code>DT_STRTAB</code>：指定了字符串表的地址，<code>d_ptr</code> 表示 <code>.synstr</code> 的地址。</li>
+<li><code>DT_STRSZ</code>：指定了字符串表的大小，<code>d_val</code> 表示大小。</li>
+<li><code>DT_HASH</code>：指定了符号哈希表的地址，用于加快符号查找的速度，<code>d_ptr</code> 表示 <code>.hash</code> 的地址。</li>
+<li><code>DT_SONAME</code>：指定了共享库的名称。</li>
+<li><code>DT_RPATH</code>：指定了库搜索路径（已废弃，不推荐使用）。</li>
+<li><code>DT_INIT</code>：指定了初始化函数的地址，动态链接器在加载可执行文件或共享库时会调用该函数。</li>
+<li><code>DT_FINI</code>：指定了终止函数的地址，动态链接器在程序结束时会调用该函数。</li>
+<li><code>DT_NEEDED</code>：指定了需要的共享库的名称。</li>
+<li><code>DT_REL/DT_RELA</code>：指定了重定位表的地址。</li>
+</ul>
+<h3 id="动态符号表（-dynsym）"><a href="#动态符号表（-dynsym）" class="headerlink" title="动态符号表（.dynsym）"></a>动态符号表（.dynsym）</h3><p>为了完成动态链接，最关键的还是所依赖的符号和相关文件的信息。我们知道在静态链接中，有一个专门的段叫做符号表 <code>.symtab</code>（Symbol Table），里面保存了所有关于该目标文件的符号的定义和引用。为了表示动态链接这些模块之间的符号导入导出关系，ELF 专门有一个叫做动态符号表（Dynamic Symbol Table）的段用来保存这些信息，这个段的段名通常叫做 <code>.dynsym</code>（Dynamic Symbol），同样也是由 <code>Elf*_Sym</code> 构成的结构体数组。</p>
+<p>与 <code>.symtab</code> 不同的是，<code>.dynsym</code> 只保存了与动态链接相关的符号，对于那些模块内部的符号，比如模块私有变量则不保存。很多时候动态链接的模块同时拥有 <code>.dynsym</code> 和 <code>.symtab</code> 两个表，<code>.symtab</code> 中往往保存了所有符号，包括 <code>.dynsym</code> 中的符号。</p>
+<p>与 <code>.symtab</code> 类似，动态符号表也需要一些辅助的表，比如用于保存符号名的字符串表。静态链接时叫做符号字符串表 <code>.strtab</code>（String Table），在这里就是动态符号字符串表 <code>.dynstr</code>（Dynamic String Table）；由于动态链接下，我们需要在程序运行时查找符号，为了加快符号的查找过程，往往还有辅助的符号哈希表（<code>.hash</code>）。</p>
+<h3 id="动态链接重定位表（-rel-dyn-rel-data）"><a href="#动态链接重定位表（-rel-dyn-rel-data）" class="headerlink" title="动态链接重定位表（.rel.dyn&#x2F;.rel.data）"></a>动态链接重定位表（.rel.dyn&#x2F;.rel.data）</h3><p>共享对象需要重定位的主要原因是导入符号的存在。动态链接下，无论是可执行文件或共享对象，一旦它依赖于其他共享对象，也就是说有导入的符号时，那么它的代码或数据中就会有对于导入符号的引用。在编译时这些导入符号的地址未知，在静态链接中，这些未知的地址引用在最终链接时被修正。但是在动态链接中，导入符号的地址在运行时才确定，所以需要在运行时将这些导入符号的引用修正，即需要重定位。</p>
+<p>共享对象的重定位与我们在前面“静态链接”中分析过的目标文件的重定位十分类似，唯一有区别的是目标文件的重定位是在静态链接时完成的，而共享对象的重定位是在装载时完成的。在静态链接中，目标文件里面包含有专门用于表示重定位信息的重定位表，比如 <code>.rel.text</code> 表示是代码段的重定位表，<code>.rel.data</code> 是数据段的重定位表。</p>
+<p>动态链接的文件中，也有类似的重定位表分别叫做 <code>.rel.dyn</code> 和 <code>.rel.plt</code> ，它们分别相当于 <code>.rel.data</code> 和 <code>.rel.text</code> 。<code>.rel.dyn</code> 实际上是对数据引用的修正，它所修正的位置位于 <code>.got</code> 以及数据段；而 <code>.rel.plt</code> 是对函数引用的修正，它所修正的位置位于 <code>.got.plt</code> 。</p>
+<h3 id="PLT-表（-plt）"><a href="#PLT-表（-plt）" class="headerlink" title="PLT 表（.plt）"></a>PLT 表（.plt）</h3><p>在未开启 FULL RELRO 的情况下 PLT 表的结构如下图所示， PLT 表在 <code>.plt</code>（有的还包括 <code>.plt.got</code>） 中。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312251148_QD98Q6DR7N6K2C7.webp"
+                      alt="图片描述"
+                ></p>
+<p>PLT 表的形式如下所示：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">PLT0:</span><br><span class="line">	push *(GOT+8)</span><br><span class="line">	jmp *(GOT+8)</span><br><span class="line">	.</span><br><span class="line">	.</span><br><span class="line">	.</span><br><span class="line">bar@PLT :</span><br><span class="line">	jmp *(bar@PLT)</span><br><span class="line">	push n</span><br><span class="line">	jmp PLT0</span><br></pre></td></tr></table></figure></div>
+
+<p>其中 n 为函数 <code>bar</code> 在 GOT 表中的值的索引，<code>bar@GOT</code> 中初始值为 <code>jmp *(bar@GOT)</code> 指令的下一条指令，也就是说第一次调用 <code>bar</code> 函数的时候会继续执行跳转至 <code>PLT0</code> 进行 <code>bar@GOT</code> 的重定位并调用 <code>bar</code> 函数；第二次调用 <code>bar</code> 函数的时候由于 <code>bar@GOT</code> 已完成重定位因此会直接跳转至 <code>bar</code> 函数。</p>
+<p>在开启 FULL RELRO 的情况下 PLT 表的结构如下图所示，此时的 PLT 表在 <code>.plt.sec</code> 而不是 <code>.plt</code> 中。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312251150_AA7M3FSC4TQ89FK.webp"
+                      alt="图片描述"
+                ></p>
+<p>由于 GOT 表在装载时已经完成重定位且不可写，因此不存在延迟绑定，PLT 直接根据 GOT 表存储的函数地址进行跳转。</p>
+<h3 id="GOT-表（-got-got-plt）"><a href="#GOT-表（-got-got-plt）" class="headerlink" title="GOT 表（.got&#x2F;.got.plt）"></a>GOT 表（.got&#x2F;.got.plt）</h3><p>ELF 将 GOT 拆分成了两个表叫做 <code>.got</code> 和 <code>.got.plt</code> 。其中 <code>.got</code> 用来保存全局变量引用的地址，<code>.got.plt</code> 用来保存函数引用的地址，也就是说，所有对于外部函数的引用全部被分离出来放到了 <code>.got.plt</code> 中（当然有的 ELF 文件可能吧这两个表合并为一个 <code>.got</code> 表，结构等同于后面提到的 <code>.got.plt</code>）。另外 <code>.got.plt</code> 还有一个特殊的地方是它的前三项是有特殊意义的，分别含义如下：</p>
+<ul>
+<li>第一项保存的是 <code>.dynamic</code> 段的偏移（也有可能是 <code>.dynamic</code> 段的地址）。</li>
+<li>第二项是一个 <code>link_map</code> 的结构体指针，里面保存着动态链接的一些相关信息，是重定位函数 <code>_dl_runtime_resolve</code> 的第一个参数。</li>
+<li>第三项保存的是 <code>_dl_runtime_resolve</code> 的地址。</li>
+</ul>
+<p><code>.got.plt</code> 在内存中的状态如下图所示：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312251148_53F9V52TG4AYGGY.webp"
+                      alt="图片描述"
+                ></p>
+<p><strong>静态链接程序也是有 plt 表和 got 表的，并且 plt 表也会被调用。</strong></p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/202312251149_3B8Z27QHAV8FS57.webp"
+                      alt="图片描述"
+                ></p>
+<h3 id="辅助信息数组"><a href="#辅助信息数组" class="headerlink" title="辅助信息数组"></a>辅助信息数组</h3><p><strong>无论静态还是动态链接程序都有辅助信息数组，只是动态链接程序是动态链接器使用辅助信息数组。</strong></p>
+<p>站在动态链接器的角度看，当操作系统把控制权交给它的时候，它将开始做链接工作，那么至少它需要知道关于可执行文件和本进程的一些信息，比如可执行文件有几个段（“Segment”）、每个段的属性、程序的入口地址（因为动态链接器到时候需要把控制权交给可执行文件）等。</p>
+<p>这些信息往往由操作系统传递给动态链接器，保存在进程的堆栈里面。我们在前面提到过，进程初始化的时候，事实上，堆栈里面还保存了动态链接器所需要的一些辅助信息数组（Auxiliary Vector）。辅助信息的格式也是一个结构数组，它的结构被定义在 <code>elf.h</code> ：</p>
+<div class="code-container" data-rel="C"><figure class="iseeu highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  <span class="type">uint32_t</span> a_type;      <span class="comment">/* Entry type */</span></span><br><span class="line">  <span class="class"><span class="keyword">union</span></span></span><br><span class="line"><span class="class">    &#123;</span></span><br><span class="line">      <span class="type">uint32_t</span> a_val;       <span class="comment">/* Integer value */</span></span><br><span class="line">      <span class="comment">/* We use to have pointer elements added here.  We cannot do that,</span></span><br><span class="line"><span class="comment">     though, since it does not work when using 32-bit definitions</span></span><br><span class="line"><span class="comment">     on 64-bit platforms and vice versa.  */</span></span><br><span class="line">    &#125; a_un;</span><br><span class="line">&#125; Elf32_auxv_t;</span><br></pre></td></tr></table></figure></div>
+
+<ul>
+<li><p>a_type字段表示辅助信息数组的类型。下面是一些常见的<code>a_type</code>值及其对应的含义：</p>
+<ul>
+<li><p><code>AT_NULL (0)</code>：辅助向量列表的结束标志。在列表的最后一个条目中使用。</p>
+</li>
+<li><p><code>AT_IGNORE (1)</code>：忽略的辅助向量类型。在某些情况下，可以将该类型的辅助向量忽略。</p>
+</li>
+<li><p><code>AT_EXECFD (2)</code>：可执行文件的文件描述符。表示打开可执行文件的文件描述符。</p>
+</li>
+<li><p><code>AT_PHDR (3)</code>：程序头表的地址。指向程序头表在内存中的起始地址。</p>
+</li>
+<li><p><code>AT_PHENT (4)</code>：程序头表中每个条目的大小（字节）。指示每个程序头表条目的字节数。</p>
+</li>
+<li><p><code>AT_PHNUM (5)</code>：程序头表的条目数量。指示程序头表中的条目数量。</p>
+</li>
+<li><p><code>AT_PAGESZ (6)</code>：页面大小。表示操作系统使用的页面大小。</p>
+</li>
+<li><p><code>AT_BASE (7)</code>：共享对象的基地址。指向主共享对象的基地址。</p>
+</li>
+<li><p><code>AT_FLAGS (8)</code>：标志位。包含一些特定于操作系统的标志。</p>
+</li>
+<li><p><code>AT_ENTRY (9)</code>：程序入口点的地址。指向程序的入口点地址。</p>
+</li>
+<li><p><code>AT_NOTELF (10)</code>：不是ELF文件。指示加载程序的文件不是有效的ELF文件。</p>
+</li>
+</ul>
+</li>
+<li><p><code>a_un</code>：该成员是一个联合体（union），用于存储辅助向量条目的值。在这段代码中，由于指针类型的元素会在 32 位和 64 位平台上产生兼容性问题，所以注释中提到不再添加指针元素。</p>
+</li>
+<li><p><code>a_val</code>：如果辅助向量条目的类型是一个整数值，那么该成员将存储该整数值。它也是一个 32 位的无符号整数。</p>
+</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>Title:</strong> ELF文件格式</li>
+        <li><strong>Author:</strong> Chiu</li>
+        <li><strong>Created at
+                :</strong> 2024-07-31 13:42:16</li>
+        
+            <li>
+                <strong>Updated at
+                    :</strong> 2024-07-31 13:43:17
+            </li>
+        
+        <li>
+            <strong>Link:</strong> https://github.com/Idealist17/github.io/2024/07/31/ELF文件格式/
+        </li>
+        <li>
+            <strong>
+                License:
+            </strong>
+            
+
+            
+                This work is licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a>.
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/PWN/">#PWN</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Linux/">#Linux</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2024/07/31/TLS/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">TLS</span>
+						<span class="post-nav-item">Prev posts</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2024/07/30/MQTT/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">MQTT</span>
+						<span class="post-nav-item">Next posts</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        Comments
+    </div>
+    
+
+        
+            
+    <div id="gitalk-container"></div>
+    <script data-swup-reload-script
+            src="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js"></script>
+    <script data-swup-reload-script>
+
+        function loadGitalk() {
+            let __gitalk__pathname = decodeURI(location.pathname);
+            const __gitalk__pathnameLength = __gitalk__pathname.length;
+            const __gitalk__pathnameMaxLength = 50;
+            if (__gitalk__pathnameLength > __gitalk__pathnameMaxLength) {
+                __gitalk__pathname = __gitalk__pathname.substring(0, __gitalk__pathnameMaxLength - 3) + '...';
+            }
+
+            try {
+                Gitalk && new Gitalk({
+                    clientID: 'Ov23ctdJf8fChgcHijWU',
+                    clientSecret: 'ab085da53c1e5d5699612cc1a17d05a64daa0e25',
+                    repo: 'https://github.com/Idealist17/gitalk',
+                    owner: 'idealist17',
+                    admin: ['idealist17'],
+                    id: __gitalk__pathname,
+                    language: 'en',
+                    proxy: 'https://github.com/login/oauth/access_token'
+                }).render('gitalk-container');
+
+            } catch (e) {
+                window.Gitalk = null;
+            }
+        }
+
+        if ('true') {
+            const loadGitalkTimeout = setTimeout(() => {
+                loadGitalk();
+                clearTimeout(loadGitalkTimeout);
+            }, 1000);
+        } else {
+            window.addEventListener('DOMContentLoaded', loadGitalk);
+        }
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">On this page</div>
+		<div class="page-title">ELF文件格式</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%96%87%E4%BB%B6%E5%A4%B4"><span class="nav-text">文件头</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E5%A4%B4%E8%A1%A8"><span class="nav-text">程序头表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A1%A8"><span class="nav-text">表</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9D%99%E6%80%81%E9%93%BE%E6%8E%A5%E7%9B%B8%E5%85%B3"><span class="nav-text">静态链接相关</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%A6%E5%8F%B7%E8%A1%A8%EF%BC%88-symtab%EF%BC%89"><span class="nav-text">符号表（.symtab）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%8D%E5%AE%9A%E4%BD%8D%E8%A1%A8%EF%BC%88-rel-text-rel-data%EF%BC%89"><span class="nav-text">重定位表（.rel.text&#x2F;.rel.data）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E7%AC%A6%E5%8F%B7%E8%A1%A8%EF%BC%88-dynsym%EF%BC%89"><span class="nav-text">动态符号表（.dynsym）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E4%BD%8D%E8%A1%A8%EF%BC%88-rel-dyn-rel-data%EF%BC%89"><span class="nav-text">动态链接重定位表（.rel.dyn&#x2F;.rel.data）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#PLT-%E8%A1%A8%EF%BC%88-plt%EF%BC%89"><span class="nav-text">PLT 表（.plt）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#GOT-%E8%A1%A8%EF%BC%88-got-got-plt%EF%BC%89"><span class="nav-text">GOT 表（.got&#x2F;.got.plt）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%85%E5%8A%A9%E4%BF%A1%E6%81%AF%E6%95%B0%E7%BB%84"><span class="nav-text">辅助信息数组</span></a></li></ol></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2024</span>
+              -
+            
+            2025&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">Chiu</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        35 posts in total
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+            <script data-swup-reload-script src="https://cn.vercount.one/js"></script>
+            <div class="relative text-center lg:absolute lg:right-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-right">
+                
+                    <span id="busuanzi_container_site_uv" class="lg:!block">
+                        <span class="text-sm">VISITOR COUNT</span>
+                        <span id="busuanzi_value_site_uv"></span>
+                    </span>
+                
+                
+                    <span id="busuanzi_container_site_pv" class="lg:!block">
+                        <span class="text-sm">TOTAL PAGE VIEWS</span>
+                        <span id="busuanzi_value_site_pv"></span>
+                    </span>
+                
+            </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">POWERED BY <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a></span>
+            <span class="text-sm lg:block">THEME&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.8.4</a></span>
+        </div>
+        
+        
+            <div>
+                Blog up for <span class="odometer" id="runtime_days" ></span> days <span class="odometer" id="runtime_hours"></span> hrs <span class="odometer" id="runtime_minutes"></span> Min <span class="odometer" id="runtime_seconds"></span> Sec
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container">
+	<img src="">
+</div>
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Search..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    const swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+</script>
+
+
+
+
+	
+<script src="/js/build/tools/imageViewer.js" type="module"></script>
+
+<script src="/js/build/utils.js" type="module"></script>
+
+<script src="/js/build/main.js" type="module"></script>
+
+<script src="/js/build/layouts/navbarShrink.js" type="module"></script>
+
+<script src="/js/build/tools/scrollTopBottom.js" type="module"></script>
+
+<script src="/js/build/tools/lightDarkSwitch.js" type="module"></script>
+
+<script src="/js/build/layouts/categoryList.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/tools/localSearch.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/codeBlock.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/layouts/lazyload.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/runtime.js"></script>
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+  
+<script src="/js/build/plugins/typed.js" type="module"></script>
+
+
+
+
+
+
+    
+<script src="/js/build/libs/minimasonry.min.js"></script>
+
+    
+<script src="/js/build/plugins/masonry.js" type="module"></script>
+
+
+
+
+
+
+
+    
+<script src="/js/build/tools/tocToggle.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/layouts/toc.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/plugins/tabs.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+<script src="/js/build/layouts/essays.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+
+	
+</body>
+
+</html>

